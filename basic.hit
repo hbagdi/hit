@@ -1,0 +1,8 @@
+---
+@c3
+post
+/foo
+~json
+foo:bar
+bar:baz
+---
