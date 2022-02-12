@@ -2,7 +2,7 @@
 @c3
 post
 /foo
-~json
-foo:bar
-bar:baz
+~yaml
+foo: bar
+bar: baz
 ---

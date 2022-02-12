@@ -16,7 +16,6 @@ var hitLexer = lexer.MustSimple([]lexer.SimpleRule{
 	{"Path", `/.*`},
 	{"Punct", `[[!@#~$%^&*()+_={}\|:;"'<,>.?/]|]`},
 	{"whitespace", `[\s]+`},
-	{"jump", `[\n]+`},
 	{"Marker", `[\-]{3}`},
 })
 
