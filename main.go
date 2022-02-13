@@ -61,13 +61,10 @@ func main() {
 			}
 		case strings.HasPrefix(line, "@"):
 			id := line[1:]
-			fmt.Println("pars")
 			req, err := request(id, sc)
 			if err != nil {
 				log.Fatalln(err)
 			}
-			fmt.Println(req)
-			fmt.Println("addin")
 			file.Requests = append(file.Requests, req)
 		default:
 			log.Fatalln("unexpected line")
@@ -78,7 +75,6 @@ func main() {
 		log.Fatalln("need a request to execute")
 	}
 	id := args[1][1:]
-	fmt.Println("requested id ", id)
 
 	var req Request
 	for _, r := range file.Requests {
@@ -121,11 +117,9 @@ func main() {
 			if err == nil && n < len(os.Args) {
 				v := os.Args[n]
 				if v[0] != '@' {
-					fmt.Println("first is not @", v)
 					return []byte(v), nil
 				}
 				key = v[1:]
-				fmt.Println("resolve key ", key)
 			}
 			pathElements := strings.Split(key, ".")
 			var r interface{} = c
@@ -160,10 +154,10 @@ func main() {
 	}
 	httpReq.Header = req.Headers
 	o, err := httputil.DumpRequestOut(httpReq, true)
+	fmt.Println(string(o))
 	if err != nil {
 		log.Fatalln("failed to dump request", err)
 	}
-	fmt.Println(string(o))
 	if err != nil {
 		log.Fatalln("failed to construct request")
 	}
@@ -172,13 +166,12 @@ func main() {
 		log.Fatalln("failed to perform request", err)
 	}
 	defer resp.Body.Close()
-	fmt.Println("status", resp.Status)
 	o, err = httputil.DumpResponse(resp, true)
 	if err != nil {
 		log.Fatalln("failed to dump response", err)
 	}
-	// save cached response
 	fmt.Println(string(o))
+	// save cached response
 	err = save(req, resp)
 	if err != nil {
 		log.Fatalln("saving response", err)
@@ -190,7 +183,6 @@ func deRef(input string, m func(string) ([]byte, error)) ([]byte, error) {
 	j := 0
 	i := 0
 	for i < len(input) {
-		fmt.Println(i, string(input[i]))
 		if input[i] != '@' {
 			i++
 			continue
@@ -198,9 +190,7 @@ func deRef(input string, m func(string) ([]byte, error)) ([]byte, error) {
 		// '@' found, copy until '@'
 		res = append(res, input[j:i]...)
 		key := keyName(input[i:])
-		fmt.Println("found key", key)
 		r, err := m(key)
-		fmt.Println("key subs", string(r))
 		if err != nil {
 			return nil, err
 		}
@@ -210,7 +200,6 @@ func deRef(input string, m func(string) ([]byte, error)) ([]byte, error) {
 		j = i
 	}
 	res = append(res, input[j:]...)
-	fmt.Println("deref res", string(res))
 	return res, nil
 }
 
