@@ -1,0 +1,27 @@
+@_global
+base_url=http://httpbin.org
+version=1
+
+
+@c0
+get
+/headers
+foo-header: bar
+
+
+@c1
+post
+/post
+dad:sdf
+~y2j
+foo: bar
+
+
+# sdf
+@c2
+post
+/post
+~hy2j
+name: @c1.json.foo
+
+
