@@ -5,9 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/ghodss/yaml"
-	"github.com/hbagdi/hit/pkg/cache"
-	"github.com/hbagdi/hit/pkg/parser"
 	"net/http"
 	"net/url"
 	"os"
@@ -15,9 +12,19 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/ghodss/yaml"
+	"github.com/hbagdi/hit/pkg/cache"
+	"github.com/hbagdi/hit/pkg/parser"
 )
 
-func Generate(global parser.Global, request parser.Request) (*http.Request, error) {
+const (
+	encodingY2J  = "y2j"
+	encodingHY2J = "hy2j"
+)
+
+func Generate(global parser.Global,
+	request parser.Request) (*http.Request, error) {
 	url, err := url.Parse(global.BaseURL)
 	if err != nil {
 		return nil, err
@@ -27,7 +34,9 @@ func Generate(global parser.Global, request parser.Request) (*http.Request, erro
 
 	bodyS := strings.Join(request.Body, "\n")
 	var body []byte
-	if request.BodyEncoding == "y2j" {
+	switch request.BodyEncoding {
+	case encodingY2J:
+
 		var i interface{}
 		err := yaml.Unmarshal([]byte(bodyS), &i)
 		if err != nil {
@@ -37,8 +46,7 @@ func Generate(global parser.Global, request parser.Request) (*http.Request, erro
 		if err != nil {
 			return nil, err
 		}
-	}
-	if request.BodyEncoding == "hy2j" {
+	case encodingHY2J:
 		c, err := cache.Load()
 		if err != nil {
 			return nil, err
@@ -67,6 +75,9 @@ func Generate(global parser.Global, request parser.Request) (*http.Request, erro
 			}
 			return []byte(fmt.Sprintf("%v", r)), nil
 		})
+		if err != nil {
+			return nil, err
+		}
 		var i interface{}
 		err = yaml.Unmarshal(body, &i)
 		if err != nil {
@@ -76,6 +87,8 @@ func Generate(global parser.Global, request parser.Request) (*http.Request, erro
 		if err != nil {
 			return nil, err
 		}
+	default:
+		return nil, fmt.Errorf("invalid encoding: %v", request.BodyEncoding)
 	}
 
 	httpReq, err := http.NewRequestWithContext(context.Background(),
@@ -108,7 +121,7 @@ func deRef(input string, m func(string) ([]byte, error)) ([]byte, error) {
 		}
 		res = append(res, r...)
 
-		i = i + len(key)
+		i += len(key)
 		j = i
 	}
 	res = append(res, input[j:]...)
@@ -118,5 +131,5 @@ func deRef(input string, m func(string) ([]byte, error)) ([]byte, error) {
 var nameRE = regexp.MustCompile("^@[a-zA-Z0-9-.]+")
 
 func keyName(input string) string {
-	return string(nameRE.FindString(input))
+	return nameRE.FindString(input)
 }

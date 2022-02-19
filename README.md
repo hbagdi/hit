@@ -2,5 +2,5 @@
 
 Hit IT!
 
-A program for making and managin HTTP requests.
+A program for making and managing HTTP requests.
 

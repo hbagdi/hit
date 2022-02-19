@@ -28,7 +28,7 @@ type Request struct {
 	Body         []string
 }
 
-func Parse(filename string) (File, error) {
+func Parse(_ string) (File, error) {
 	f, err := os.Open("test.hit")
 	if err != nil {
 		return File{}, err
@@ -109,7 +109,7 @@ func request(id string, sc *bufio.Scanner) (Request, error) {
 	if len(headerLines) > 0 {
 		headers, err := parseHeaders(headerLines)
 		if err != nil {
-			return Request{}, nil
+			return Request{}, err
 		}
 		res.Headers = headers
 	}
@@ -132,11 +132,13 @@ func request(id string, sc *bufio.Scanner) (Request, error) {
 	return res, nil
 }
 
+const kvSplitCount = 2
+
 func parseHeaders(lines []string) (map[string][]string, error) {
 	res := map[string][]string{}
 	for _, line := range lines {
-		kv := strings.SplitN(line, ":", 2)
-		if len(kv) != 2 {
+		kv := strings.SplitN(line, ":", kvSplitCount)
+		if len(kv) != kvSplitCount {
 			return nil, fmt.Errorf("invalid header line: '%v'", line)
 		}
 		res[kv[0]] = []string{kv[1]}
@@ -175,7 +177,7 @@ func global(sc *bufio.Scanner, g *Global) error {
 			return nil
 		default:
 			kv := strings.Split(line, "=")
-			if len(kv) != 2 {
+			if len(kv) != kvSplitCount {
 				return fmt.Errorf("failed to parse line '%v'", line)
 			}
 			if kv[0] == "base_url" {
@@ -184,7 +186,7 @@ func global(sc *bufio.Scanner, g *Global) error {
 			if kv[0] == "version" {
 				v, err := strconv.Atoi(kv[1])
 				if err != nil {
-					return fmt.Errorf("invalid version '%d'", kv[1])
+					return fmt.Errorf("invalid version '%v'", kv[1])
 				}
 				g.Version = v
 			}

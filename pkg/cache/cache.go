@@ -2,9 +2,10 @@ package cache
 
 import (
 	"encoding/json"
-	"github.com/hbagdi/hit/pkg/parser"
 	"io/ioutil"
 	"net/http"
+
+	"github.com/hbagdi/hit/pkg/parser"
 )
 
 func Load() (map[string]interface{}, error) {
@@ -17,6 +18,7 @@ func Load() (map[string]interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return m, nil
 }
 
@@ -43,5 +45,6 @@ func Save(req parser.Request, resp *http.Response) error {
 	if err != nil {
 		return err
 	}
+
 	return ioutil.WriteFile(".hit.cache", f, 0)
 }
