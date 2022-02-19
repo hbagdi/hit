@@ -13,6 +13,9 @@ import (
 	"github.com/hbagdi/hit/pkg/request"
 )
 
+var VERSION = "dev"
+var COMMIT_HASH = "dev"
+
 const (
 	minArgs = 2
 	timeout = 10 * time.Second
@@ -23,7 +26,16 @@ func Run(ctx context.Context) error {
 	if len(args) < minArgs {
 		return fmt.Errorf("need a request to execute")
 	}
-	id := args[1][1:]
+	id := args[1]
+
+	if id == "version" {
+		fmt.Printf("%s (commit: %s)\n", VERSION, COMMIT_HASH)
+		return nil
+	}
+	if id[0] != '@' {
+		return fmt.Errorf("request must begin with '@' character")
+	}
+	id = id[1:]
 
 	fileName := "test.hit"
 	file, err := parser.Parse(fileName)

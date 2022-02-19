@@ -1,0 +1,41 @@
+builds:
+- env:
+  - CGO_ENABLED=0
+  goos:
+  - linux
+  - darwin
+  - windows
+  goarch:
+  - amd64
+  - arm64
+  flags:
+  - -trimpath
+  ldflags:
+  - -s -w -X github.com/hbagdi/hit/pkg/cmd.VERSION={{ .Tag }} -X github.com/hbagdi/hit/pkg/cmd.COMMIT_HASH={{ .ShortCommit }}
+checksum:
+  name_template: 'checksums.txt'
+snapshot:
+  name_template: "{{ .Tag }}"
+nfpms:
+- file_name_template: '{{ .ProjectName }}_{{ .Tag }}_{{ .Arch }}'
+  homepage: https://github.com/hbagdi/hit
+  description: HTTP requests made sane again.
+  maintainer: Harry Bagdi <harrybagdi@gmail.com>
+  license: Apache License v2.0
+  formats:
+  - deb
+  - rpm
+brews:
+- tap:
+    owner: hbagdi
+    name: homebrew-tap
+  commit_author:
+    name: Harry Bagdi
+    email: harrybagdi@gmail.com
+  homepage: "https://github.com/hbagdi/hit"
+  description: HTTP requests made sane again.
+  skip_upload: true
+  test: |
+      system "#{bin}/hit", "version"
+universal_binaries:
+  - replace: true
