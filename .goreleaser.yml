@@ -11,7 +11,7 @@ builds:
   flags:
   - -trimpath
   ldflags:
-  - -s -w -X github.com/hbagdi/hit/pkg/cmd.VERSION={{ .Tag }} -X github.com/hbagdi/hit/pkg/cmd.COMMIT_HASH={{ .ShortCommit }}
+  - -s -w -X github.com/hbagdi/hit/pkg/cmd.Version={{ .Tag }} -X github.com/hbagdi/hit/pkg/cmd.CommitHash={{ .ShortCommit }}
 checksum:
   name_template: 'checksums.txt'
 snapshot:

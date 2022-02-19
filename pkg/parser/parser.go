@@ -28,8 +28,8 @@ type Request struct {
 	Body         []string
 }
 
-func Parse(_ string) (File, error) {
-	f, err := os.Open("test.hit")
+func Parse(filename string) (File, error) {
+	f, err := os.Open(filename)
 	if err != nil {
 		return File{}, err
 	}

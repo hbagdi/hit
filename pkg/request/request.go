@@ -87,6 +87,7 @@ func Generate(global parser.Global,
 		if err != nil {
 			return nil, err
 		}
+	case "":
 	default:
 		return nil, fmt.Errorf("invalid encoding: %v", request.BodyEncoding)
 	}
