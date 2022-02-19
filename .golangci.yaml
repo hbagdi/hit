@@ -16,7 +16,6 @@ linters:
     - forbidigo
     - forcetypeassert
     - gci
-    - gochecknoinits
     - goconst
     - gocritic
     - gocyclo
