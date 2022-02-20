@@ -9,6 +9,8 @@ import (
 	"strings"
 )
 
+var idRegex = regexp.MustCompile(`^@[a-zA-Z][a-z-A-Z0-9-_]+$`)
+
 type File struct {
 	Global   Global
 	Requests []Request
@@ -50,6 +52,9 @@ func Parse(filename string) (File, error) {
 				return File{}, err
 			}
 		case strings.HasPrefix(line, "@"):
+			if !idRegex.MatchString(line) {
+				return File{}, fmt.Errorf("invalid id: '%v'", line)
+			}
 			id := line[1:]
 			req, err := request(id, sc)
 			if err != nil {
