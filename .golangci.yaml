@@ -45,7 +45,6 @@ linters:
     - nilnil
     - noctx
     - nolintlint
-    - paralleltest
     - prealloc
     - predeclared
     - promlinter
@@ -57,7 +56,6 @@ linters:
     - stylecheck
     - tagliatelle
     - tenv
-    - testpackage
     - thelper
     - tparallel
     - typecheck

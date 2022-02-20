@@ -9,13 +9,13 @@ import (
 	"net/url"
 	"os"
 	"path"
-	"regexp"
 	"strconv"
 	"strings"
 
 	"github.com/ghodss/yaml"
 	"github.com/hbagdi/hit/pkg/cache"
 	"github.com/hbagdi/hit/pkg/parser"
+	"github.com/tidwall/gjson"
 )
 
 const (
@@ -36,7 +36,6 @@ func Generate(global parser.Global,
 	var body []byte
 	switch request.BodyEncoding {
 	case encodingY2J:
-
 		var i interface{}
 		err := yaml.Unmarshal([]byte(bodyS), &i)
 		if err != nil {
@@ -51,7 +50,7 @@ func Generate(global parser.Global,
 		if err != nil {
 			return nil, err
 		}
-		body, err = deRef(bodyS, func(key string) ([]byte, error) {
+		fn := func(key string) (interface{}, error) {
 			key = key[1:]
 			n, err := strconv.Atoi(key)
 			if err == nil && n < len(os.Args) {
@@ -73,20 +72,19 @@ func Generate(global parser.Global,
 					return nil, fmt.Errorf("key not found: %v", key)
 				}
 			}
-			return []byte(fmt.Sprintf("%v", r)), nil
-		})
+			return r, nil
+		}
+
+		jsonBytes, err := yaml.YAMLToJSON([]byte(bodyS))
 		if err != nil {
 			return nil, err
 		}
-		var i interface{}
-		err = yaml.Unmarshal(body, &i)
+		r := &Resolver{Fn: fn}
+		body, err = r.Resolve(jsonBytes)
 		if err != nil {
 			return nil, err
 		}
-		body, err = json.Marshal(i)
-		if err != nil {
-			return nil, err
-		}
+
 	case "":
 	default:
 		return nil, fmt.Errorf("invalid encoding: %v", request.BodyEncoding)
@@ -104,33 +102,79 @@ func Generate(global parser.Global,
 	return httpReq, nil
 }
 
-func deRef(input string, m func(string) ([]byte, error)) ([]byte, error) {
-	var res []byte
-	j := 0
-	i := 0
-	for i < len(input) {
-		if input[i] != '@' {
-			i++
-			continue
-		}
-		// '@' found, copy until '@'
-		res = append(res, input[j:i]...)
-		key := keyName(input[i:])
-		r, err := m(key)
-		if err != nil {
-			return nil, err
-		}
-		res = append(res, r...)
+type SubFn func(string) (interface{}, error)
 
-		i += len(key)
-		j = i
-	}
-	res = append(res, input[j:]...)
-	return res, nil
+type Resolver struct {
+	Fn  SubFn
+	res interface{}
+	err error
 }
 
-var nameRE = regexp.MustCompile("^@[a-zA-Z0-9-.]+")
+func (r *Resolver) Resolve(input []byte) ([]byte, error) {
+	g := gjson.ParseBytes(input)
+	r.res, r.err = r.deRefJSON(g)
+	if r.err != nil {
+		return nil, r.err
+	}
+	return json.Marshal(r.res)
+}
 
-func keyName(input string) string {
-	return nameRE.FindString(input)
+func (r *Resolver) deRefJSON(j gjson.Result) (interface{}, error) {
+	if j.IsArray() {
+		var res []interface{}
+		var iteratorErr error
+		j.ForEach(func(key, value gjson.Result) bool {
+			r, err := r.deRefJSON(value)
+			if err != nil {
+				iteratorErr = err
+				return false
+			}
+			res = append(res, r)
+			return true
+		})
+		if iteratorErr != nil {
+			return nil, iteratorErr
+		}
+		return res, nil
+	}
+	if j.IsObject() {
+		res := map[string]interface{}{}
+		var iteratorErr error
+		j.ForEach(func(key, value gjson.Result) bool {
+			r, err := r.deRefJSON(value)
+			if err != nil {
+				iteratorErr = err
+				return false
+			}
+			res[key.String()] = r
+			return true
+		})
+		if iteratorErr != nil {
+			return nil, iteratorErr
+		}
+		return res, nil
+	}
+	if j.IsBool() {
+		return j.Value(), nil
+	}
+	switch j.Type {
+	case gjson.String:
+		v := j.String()
+		if v[0] != '@' {
+			return v, nil
+		}
+		return r.Fn(v)
+	case gjson.Number:
+		fallthrough
+	case gjson.Null:
+		return j.Value(), nil
+	case gjson.JSON:
+		fallthrough
+	case gjson.True:
+		fallthrough
+	case gjson.False:
+		fallthrough
+	default:
+		panic(fmt.Sprintf("unhandled type: %v", j.Type.String()))
+	}
 }
