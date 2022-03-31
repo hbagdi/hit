@@ -15,6 +15,7 @@ import (
 	"github.com/ghodss/yaml"
 	"github.com/hbagdi/hit/pkg/cache"
 	"github.com/hbagdi/hit/pkg/parser"
+	"github.com/hbagdi/hit/pkg/version"
 	"github.com/tidwall/gjson"
 )
 
@@ -99,6 +100,7 @@ func Generate(global parser.Global,
 	if request.Headers != nil {
 		httpReq.Header = request.Headers
 	}
+	httpReq.Header.Add("user-agent", "hit/"+version.Version)
 	return httpReq, nil
 }
 

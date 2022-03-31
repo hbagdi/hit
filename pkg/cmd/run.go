@@ -13,11 +13,7 @@ import (
 	"github.com/hbagdi/hit/pkg/cache"
 	"github.com/hbagdi/hit/pkg/parser"
 	"github.com/hbagdi/hit/pkg/request"
-)
-
-var (
-	Version    = "dev"
-	CommitHash = "dev"
+	"github.com/hbagdi/hit/pkg/version"
 )
 
 const (
@@ -34,7 +30,7 @@ func Run(ctx context.Context) error {
 
 	switch {
 	case id == "version":
-		fmt.Printf("%s (commit: %s)\n", Version, CommitHash)
+		fmt.Printf("%s (commit: %s)\n", version.Version, version.CommitHash)
 		return nil
 	case id[0] == '@':
 	default:
