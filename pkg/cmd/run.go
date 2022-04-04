@@ -1,8 +1,10 @@
 package cmd
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -10,10 +12,12 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/fatih/color"
 	"github.com/hbagdi/hit/pkg/cache"
 	"github.com/hbagdi/hit/pkg/parser"
 	"github.com/hbagdi/hit/pkg/request"
 	"github.com/hbagdi/hit/pkg/version"
+	"github.com/hokaccha/go-prettyjson"
 )
 
 const (
@@ -71,16 +75,70 @@ func Run(ctx context.Context) error {
 	defer func() {
 		_ = resp.Body.Close()
 	}()
-	o, err = httputil.DumpResponse(resp, true)
+	err = printResponse(resp)
 	if err != nil {
-		return fmt.Errorf("failed to dump response: %v", err)
+		return err
 	}
-	fmt.Println(string(o))
 
 	// save cached response
 	err = cache.Save(req, resp)
 	if err != nil {
 		return fmt.Errorf("saving response: %v", err)
+	}
+	return nil
+}
+
+var (
+	cyan    = color.New(color.FgCyan)
+	white   = color.New(color.FgWhite)
+	red     = color.New(color.FgRed)
+	green   = color.New(color.FgGreen)
+	yellow  = color.New(color.FgYellow)
+	magenta = color.New(color.FgMagenta)
+)
+
+func printResponse(resp *http.Response) error {
+	fmt.Printf("%s ", resp.Proto)
+	var fn func(format string, a ...interface{}) (int, error)
+	switch {
+	case resp.StatusCode < 300: //nolint:gomnd
+		fn = green.Printf
+	case resp.StatusCode < 400: //nolint:gomnd
+		fn = yellow.Printf
+	case resp.StatusCode < 500: //nolint:gomnd
+		fn = magenta.Printf
+	case resp.StatusCode < 600: //nolint:gomnd
+		fn = red.Printf
+	default:
+		fn = white.Printf
+	}
+	_, err := fn("%s\n", resp.Status)
+	if err != nil {
+		return err
+	}
+
+	for k, values := range resp.Header {
+		for _, v := range values {
+			cyan.Printf("%s", k)
+			fmt.Printf(": ")
+			white.Printf("%s\n", v)
+		}
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+	resp.Body = ioutil.NopCloser(bytes.NewBuffer(body))
+	if resp.Header.Get("content-type") == "application/json" {
+		js, err := prettyjson.Format(body)
+		if err != nil {
+			return err
+		}
+		fmt.Println(string(js))
+	} else {
+		white.Printf(string(body))
 	}
 	return nil
 }

@@ -23,3 +23,25 @@ post
 /post
 ~hy2j
 name: @c1.json.foo
+
+@c300
+get
+/status/300
+dad:sdf
+~y2j
+foo: bar
+
+@c400
+get
+/status/400
+dad:sdf
+~y2j
+foo: bar
+
+@c500
+get
+/status/500
+dad:sdf
+~y2j
+foo: bar
+
