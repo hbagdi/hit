@@ -25,6 +25,9 @@ func init() {
 	if err != nil {
 		panic(fmt.Sprintf("failed to find cache directory: %v", err))
 	}
+	if err = ensureDir(userCacheDir, os.ModePerm); err != nil {
+		panic(err)
+	}
 	if err = ensureDir(filepath.Join(userCacheDir, cacheDir),
 		os.ModePerm); err != nil {
 		panic(err)
