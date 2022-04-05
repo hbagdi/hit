@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"net/http/httputil"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -58,9 +57,11 @@ func Run(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to build request: %v", err)
 	}
+	err = printRequest(httpReq)
+	if err != nil {
+		return err
+	}
 	// execute
-	o, err := httputil.DumpRequestOut(httpReq, true)
-	fmt.Println(string(o))
 	if err != nil {
 		return fmt.Errorf("failed to dump request: %v", err)
 	}
@@ -88,6 +89,25 @@ func Run(ctx context.Context) error {
 	return nil
 }
 
+func printRequest(r *http.Request) error {
+	fmt.Println(r.Method + " " + r.URL.Path + " " + r.Proto)
+	printHeaders(r.Header)
+	fmt.Println()
+	defer r.Body.Close()
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return err
+	}
+	r.Body = ioutil.NopCloser(bytes.NewBuffer(body))
+
+	err = printBody(body, true)
+	if err != nil {
+		return err
+	}
+	fmt.Println()
+	return nil
+}
+
 var (
 	cyan    = color.New(color.FgCyan)
 	white   = color.New(color.FgWhite)
@@ -112,18 +132,11 @@ func printResponse(resp *http.Response) error {
 	default:
 		fn = white.Printf
 	}
-	_, err := fn("%s\n", resp.Status)
-	if err != nil {
+	if _, err := fn("%s\n", resp.Status); err != nil {
 		return err
 	}
 
-	for k, values := range resp.Header {
-		for _, v := range values {
-			cyan.Printf("%s", k)
-			fmt.Printf(": ")
-			white.Printf("%s\n", v)
-		}
-	}
+	printHeaders(resp.Header)
 
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
@@ -131,7 +144,12 @@ func printResponse(resp *http.Response) error {
 		return err
 	}
 	resp.Body = ioutil.NopCloser(bytes.NewBuffer(body))
-	if resp.Header.Get("content-type") == "application/json" {
+
+	return printBody(body, resp.Header.Get("content-type") == "application/json")
+}
+
+func printBody(body []byte, isJSON bool) error {
+	if isJSON {
 		js, err := prettyjson.Format(body)
 		if err != nil {
 			return err
@@ -141,6 +159,16 @@ func printResponse(resp *http.Response) error {
 		white.Printf(string(body))
 	}
 	return nil
+}
+
+func printHeaders(header http.Header) {
+	for k, values := range header {
+		for _, v := range values {
+			cyan.Printf("%s", k)
+			fmt.Printf(": ")
+			white.Printf("%s\n", v)
+		}
+	}
 }
 
 func fetchGlobal(files []parser.File) (parser.Global, error) {

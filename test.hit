@@ -17,6 +17,14 @@ dad:sdf
 foo: bar
 
 
+@c11
+post
+/post
+dad:sdf
+~text
+foo: bar
+
+
 # sdf
 @c2
 post
