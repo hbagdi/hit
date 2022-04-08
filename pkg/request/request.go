@@ -26,10 +26,82 @@ const (
 func Generate(global parser.Global,
 	request parser.Request,
 ) (*http.Request, error) {
-	url, err := url.Parse(global.BaseURL + request.Path)
+	c, err := cache.Load()
 	if err != nil {
 		return nil, err
 	}
+	fn := func(key string) (interface{}, error) {
+		key = key[1:]
+		n, err := strconv.Atoi(key)
+		if err == nil && n < len(os.Args) {
+			v := os.Args[n]
+			if v[0] != '@' {
+				return v, nil
+			}
+			key = v[1:]
+		}
+		pathElements := strings.Split(key, ".")
+		var r interface{} = c
+		for _, element := range pathElements {
+			m, ok := r.(map[string]interface{})
+			if !ok {
+				return nil, fmt.Errorf("failed to index key: %v", key)
+			}
+			r, ok = m[element]
+			if !ok {
+				return nil, fmt.Errorf("key not found: %v", key)
+			}
+		}
+		return r, nil
+	}
+
+	u, err := url.Parse(global.BaseURL + request.Path)
+	if err != nil {
+		return nil, err
+	}
+	if strings.Contains(u.Path, "@") {
+		resolvedPath := ""
+		fragments := strings.Split(u.Path, "/")
+		for _, fragment := range fragments {
+			resolvedPath += "/"
+			if len(fragment) > 0 && fragment[0] == '@' {
+				resolvedValue, err := fn(fragment)
+				if err != nil {
+					return nil, err
+				}
+				if resolvedFragment, ok := resolvedValue.(string); ok {
+					resolvedPath += resolvedFragment
+				} else {
+					return nil, fmt.Errorf("invalid type %T for key %s",
+						resolvedValue, fragment)
+				}
+			} else {
+				resolvedPath += fragment
+			}
+		}
+		u.Path = resolvedPath
+	}
+	qp := u.Query()
+	for k, v := range qp {
+		qp.Del(k)
+		for _, value := range v {
+			if len(value) > 0 && value[0] == '@' {
+				resolvedValue, err := fn(value)
+				if err != nil {
+					return nil, err
+				}
+				if resolvedString, ok := resolvedValue.(string); ok {
+					qp.Add(k, resolvedString)
+				} else {
+					return nil, fmt.Errorf("invalid type %T for key %s",
+						resolvedValue, value)
+				}
+			} else {
+				qp.Add(k, value)
+			}
+		}
+	}
+	u.RawQuery = qp.Encode()
 
 	bodyS := strings.Join(request.Body, "\n")
 	var body []byte
@@ -45,34 +117,6 @@ func Generate(global parser.Global,
 			return nil, err
 		}
 	case encodingHY2J:
-		c, err := cache.Load()
-		if err != nil {
-			return nil, err
-		}
-		fn := func(key string) (interface{}, error) {
-			key = key[1:]
-			n, err := strconv.Atoi(key)
-			if err == nil && n < len(os.Args) {
-				v := os.Args[n]
-				if v[0] != '@' {
-					return v, nil
-				}
-				key = v[1:]
-			}
-			pathElements := strings.Split(key, ".")
-			var r interface{} = c
-			for _, element := range pathElements {
-				m, ok := r.(map[string]interface{})
-				if !ok {
-					return nil, fmt.Errorf("failed to index key: %v", key)
-				}
-				r, ok = m[element]
-				if !ok {
-					return nil, fmt.Errorf("key not found: %v", key)
-				}
-			}
-			return r, nil
-		}
 
 		jsonBytes, err := yaml.YAMLToJSON([]byte(bodyS))
 		if err != nil {
@@ -91,7 +135,7 @@ func Generate(global parser.Global,
 
 	httpReq, err := http.NewRequestWithContext(context.Background(),
 		request.Method,
-		url.String(), bytes.NewReader(body))
+		u.String(), bytes.NewReader(body))
 	if err != nil {
 		return nil, err
 	}

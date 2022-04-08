@@ -11,7 +11,7 @@ foo-header: bar
 
 @c1
 post
-/post
+/post?cluster.id=@c1.json.foo
 dad:sdf
 ~y2j
 foo: bar
@@ -21,7 +21,7 @@ foo: bar
 post
 /post
 dad:sdf
-~text
+~y2j
 foo: bar
 
 
@@ -30,7 +30,7 @@ foo: bar
 post
 /post
 ~hy2j
-name: @c1.json.foo
+name: "@c1.json.foo"
 
 @c300
 get
