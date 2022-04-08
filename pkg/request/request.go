@@ -54,7 +54,7 @@ func Generate(global parser.Global,
 			if err == nil && n < len(os.Args) {
 				v := os.Args[n]
 				if v[0] != '@' {
-					return []byte(v), nil
+					return v, nil
 				}
 				key = v[1:]
 			}
