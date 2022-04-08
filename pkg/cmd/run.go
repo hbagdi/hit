@@ -3,6 +3,7 @@ package cmd
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -100,7 +101,7 @@ func printRequest(r *http.Request) error {
 	}
 	r.Body = ioutil.NopCloser(bytes.NewBuffer(body))
 
-	err = printBody(body, true)
+	err = printBody(body)
 	if err != nil {
 		return err
 	}
@@ -145,11 +146,17 @@ func printResponse(resp *http.Response) error {
 	}
 	resp.Body = ioutil.NopCloser(bytes.NewBuffer(body))
 
-	return printBody(body, resp.Header.Get("content-type") == "application/json")
+	return printBody(body)
 }
 
-func printBody(body []byte, isJSON bool) error {
-	if isJSON {
+func isJSON(b []byte) bool {
+	var r interface{}
+	err := json.Unmarshal(b, &r)
+	return err == nil
+}
+
+func printBody(body []byte) error {
+	if isJSON(body) {
 		js, err := prettyjson.Format(body)
 		if err != nil {
 			return err
