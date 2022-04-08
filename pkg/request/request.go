@@ -24,7 +24,8 @@ const (
 )
 
 func Generate(global parser.Global,
-	request parser.Request) (*http.Request, error) {
+	request parser.Request,
+) (*http.Request, error) {
 	url, err := url.Parse(global.BaseURL + request.Path)
 	if err != nil {
 		return nil, err
