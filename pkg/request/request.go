@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"path"
 	"strconv"
 	"strings"
 
@@ -26,12 +25,10 @@ const (
 
 func Generate(global parser.Global,
 	request parser.Request) (*http.Request, error) {
-	url, err := url.Parse(global.BaseURL)
+	url, err := url.Parse(global.BaseURL + request.Path)
 	if err != nil {
 		return nil, err
 	}
-	path := path.Join(url.Path, request.Path)
-	url.Path = path
 
 	bodyS := strings.Join(request.Body, "\n")
 	var body []byte
