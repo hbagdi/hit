@@ -60,26 +60,10 @@ func Generate(global parser.Global,
 		return nil, err
 	}
 	if strings.Contains(u.Path, "@") {
-		resolvedPath := ""
-		fragments := strings.Split(u.Path, "/")
-		for _, fragment := range fragments {
-			resolvedPath += "/"
-			if len(fragment) > 0 && fragment[0] == '@' {
-				resolvedValue, err := fn(fragment)
-				if err != nil {
-					return nil, err
-				}
-				if resolvedFragment, ok := resolvedValue.(string); ok {
-					resolvedPath += resolvedFragment
-				} else {
-					return nil, fmt.Errorf("invalid type %T for key %s",
-						resolvedValue, fragment)
-				}
-			} else {
-				resolvedPath += fragment
-			}
+		u.Path, err = resolvePath(u.Path, fn)
+		if err != nil {
+			return nil, err
 		}
-		u.Path = resolvedPath
 	}
 	qp := u.Query()
 	for k, v := range qp {
@@ -221,4 +205,27 @@ func (r *Resolver) deRefJSON(j gjson.Result) (interface{}, error) {
 	default:
 		panic(fmt.Sprintf("unhandled type: %v", j.Type.String()))
 	}
+}
+
+func resolvePath(path string, fn func(string) (interface{}, error)) (string, error) {
+	resolvedPath := ""
+	fragments := strings.Split(path, "/")
+	for _, fragment := range fragments {
+		resolvedPath += "/"
+		if len(fragment) > 0 && fragment[0] == '@' {
+			resolvedValue, err := fn(fragment)
+			if err != nil {
+				return "", err
+			}
+			if resolvedFragment, ok := resolvedValue.(string); ok {
+				resolvedPath += resolvedFragment
+			} else {
+				return "", fmt.Errorf("invalid type %T for key %s",
+					resolvedValue, fragment)
+			}
+		} else {
+			resolvedPath += fragment
+		}
+	}
+	return resolvedPath, nil
 }
