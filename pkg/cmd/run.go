@@ -10,10 +10,12 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/fatih/color"
 	"github.com/hbagdi/hit/pkg/cache"
+	comp "github.com/hbagdi/hit/pkg/completion"
 	"github.com/hbagdi/hit/pkg/parser"
 	"github.com/hbagdi/hit/pkg/request"
 	"github.com/hbagdi/hit/pkg/version"
@@ -25,6 +27,30 @@ const (
 	timeout = 10 * time.Second
 )
 
+func completion() error {
+	ids, err := requestIDs()
+	if err != nil {
+		return err
+	}
+	output := strings.Join(ids, " ")
+	fmt.Println(output)
+	return nil
+}
+
+func requestIDs() ([]string, error) {
+	files, err := loadFiles()
+	if err != nil {
+		return nil, fmt.Errorf("read hit files: %v", err)
+	}
+	var requestIDs []string
+	for _, f := range files {
+		for _, r := range f.Requests {
+			requestIDs = append(requestIDs, "@"+r.ID)
+		}
+	}
+	return requestIDs, nil
+}
+
 func Run(ctx context.Context) error {
 	args := os.Args
 	if len(args) < minArgs {
@@ -33,6 +59,11 @@ func Run(ctx context.Context) error {
 	id := args[1]
 
 	switch {
+	case id == "completion":
+		fmt.Println(comp.Script)
+		return nil
+	case id == "c1":
+		return completion()
 	case id == "version":
 		fmt.Printf("%s (commit: %s)\n", version.Version, version.CommitHash)
 		return nil
