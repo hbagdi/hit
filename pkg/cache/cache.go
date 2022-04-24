@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/hbagdi/hit/pkg/parser"
 )
@@ -94,7 +95,8 @@ func Save(req parser.Request, resp *http.Response) error {
 	if err != nil {
 		return err
 	}
-	if resp.Header.Get("content-type") != "application/json" {
+	contentType := resp.Header.Get("content-type")
+	if !strings.Contains(contentType, "application/json") {
 		return nil
 	}
 	res, err := ioutil.ReadAll(resp.Body)
