@@ -211,20 +211,22 @@ func resolvePath(path string, fn func(string) (interface{}, error)) (string, err
 	resolvedPath := ""
 	fragments := strings.Split(path, "/")
 	for _, fragment := range fragments {
-		resolvedPath += "/"
+		if fragment == "" {
+			continue
+		}
 		if len(fragment) > 0 && fragment[0] == '@' {
 			resolvedValue, err := fn(fragment)
 			if err != nil {
 				return "", err
 			}
 			if resolvedFragment, ok := resolvedValue.(string); ok {
-				resolvedPath += resolvedFragment
+				resolvedPath += "/" + resolvedFragment
 			} else {
 				return "", fmt.Errorf("invalid type %T for key %s",
 					resolvedValue, fragment)
 			}
 		} else {
-			resolvedPath += fragment
+			resolvedPath += "/" + fragment
 		}
 	}
 	return resolvedPath, nil

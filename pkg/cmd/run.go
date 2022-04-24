@@ -8,7 +8,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -51,8 +50,7 @@ func requestIDs() ([]string, error) {
 	return requestIDs, nil
 }
 
-func Run(ctx context.Context) error {
-	args := os.Args
+func Run(ctx context.Context, args ...string) error {
 	if len(args) < minArgs {
 		return fmt.Errorf("need a request to execute")
 	}
@@ -60,7 +58,7 @@ func Run(ctx context.Context) error {
 
 	switch {
 	case id == "completion":
-		fmt.Println(comp.Script)
+		fmt.Print(comp.Script)
 		return nil
 	case id == "c1":
 		return completion()
