@@ -7,15 +7,12 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"os"
-	"strconv"
 	"strings"
 
 	"github.com/ghodss/yaml"
-	"github.com/hbagdi/hit/pkg/cache"
+	cachePkg "github.com/hbagdi/hit/pkg/cache"
 	"github.com/hbagdi/hit/pkg/parser"
 	"github.com/hbagdi/hit/pkg/version"
-	"github.com/tidwall/gjson"
 )
 
 const (
@@ -23,102 +20,26 @@ const (
 	encodingHY2J = "hy2j"
 )
 
-func Generate(global parser.Global,
-	request parser.Request,
-) (*http.Request, error) {
-	c, err := cache.Load()
+type Options struct {
+	GlobalContext parser.Global
+	Cache         cachePkg.Cache
+	Args          []string
+}
+
+func Generate(ctx context.Context, request parser.Request, opts Options) (*http.Request, error) {
+	resolver := newCacheResolver(opts.Cache, opts.Args)
+
+	u, err := genURL(request, opts.GlobalContext, resolver)
 	if err != nil {
 		return nil, err
 	}
-	fn := func(key string) (interface{}, error) {
-		key = key[1:]
-		n, err := strconv.Atoi(key)
-		if err == nil && n < len(os.Args) {
-			v := os.Args[n]
-			if v[0] != '@' {
-				return v, nil
-			}
-			key = v[1:]
-		}
-		pathElements := strings.Split(key, ".")
-		var r interface{} = c
-		for _, element := range pathElements {
-			m, ok := r.(map[string]interface{})
-			if !ok {
-				return nil, fmt.Errorf("failed to index key: %v", key)
-			}
-			r, ok = m[element]
-			if !ok {
-				return nil, fmt.Errorf("key not found: %v", key)
-			}
-		}
-		return r, nil
-	}
 
-	u, err := url.Parse(global.BaseURL + request.Path)
+	body, err := resolveBody(request, resolver)
 	if err != nil {
 		return nil, err
 	}
-	if strings.Contains(u.Path, "@") {
-		u.Path, err = resolvePath(u.Path, fn)
-		if err != nil {
-			return nil, err
-		}
-	}
-	qp := u.Query()
-	for k, v := range qp {
-		qp.Del(k)
-		for _, value := range v {
-			if len(value) > 0 && value[0] == '@' {
-				resolvedValue, err := fn(value)
-				if err != nil {
-					return nil, err
-				}
-				if resolvedString, ok := resolvedValue.(string); ok {
-					qp.Add(k, resolvedString)
-				} else {
-					return nil, fmt.Errorf("invalid type %T for key %s",
-						resolvedValue, value)
-				}
-			} else {
-				qp.Add(k, value)
-			}
-		}
-	}
-	u.RawQuery = qp.Encode()
 
-	bodyS := strings.Join(request.Body, "\n")
-	var body []byte
-	switch request.BodyEncoding {
-	case encodingY2J:
-		var i interface{}
-		err := yaml.Unmarshal([]byte(bodyS), &i)
-		if err != nil {
-			return nil, err
-		}
-		body, err = json.Marshal(i)
-		if err != nil {
-			return nil, err
-		}
-	case encodingHY2J:
-
-		jsonBytes, err := yaml.YAMLToJSON([]byte(bodyS))
-		if err != nil {
-			return nil, err
-		}
-		r := &Resolver{Fn: fn}
-		body, err = r.Resolve(jsonBytes)
-		if err != nil {
-			return nil, err
-		}
-
-	case "":
-	default:
-		return nil, fmt.Errorf("invalid encoding: %v", request.BodyEncoding)
-	}
-
-	httpReq, err := http.NewRequestWithContext(context.Background(),
-		request.Method,
+	httpReq, err := http.NewRequestWithContext(ctx, request.Method,
 		u.String(), bytes.NewReader(body))
 	if err != nil {
 		return nil, err
@@ -130,84 +51,30 @@ func Generate(global parser.Global,
 	return httpReq, nil
 }
 
-type SubFn func(string) (interface{}, error)
+func genURL(request parser.Request, global parser.Global, resolver resolver) (*url.URL, error) {
+	res, err := url.Parse(global.BaseURL + request.Path)
+	if err != nil {
+		return nil, err
+	}
 
-type Resolver struct {
-	Fn  SubFn
-	res interface{}
-	err error
+	res.Path, err = resolvePath(res.Path, resolver)
+	if err != nil {
+		return nil, err
+	}
+
+	resolvedQueryParams, err := resolveQueryParams(res.Query(), resolver)
+	if err != nil {
+		return nil, err
+	}
+
+	res.RawQuery = resolvedQueryParams.Encode()
+	return res, err
 }
 
-func (r *Resolver) Resolve(input []byte) ([]byte, error) {
-	g := gjson.ParseBytes(input)
-	r.res, r.err = r.deRefJSON(g)
-	if r.err != nil {
-		return nil, r.err
+func resolvePath(path string, resolver resolver) (string, error) {
+	if !strings.Contains(path, "@") {
+		return path, nil
 	}
-	return json.Marshal(r.res)
-}
-
-func (r *Resolver) deRefJSON(j gjson.Result) (interface{}, error) {
-	if j.IsArray() {
-		var res []interface{}
-		var iteratorErr error
-		j.ForEach(func(key, value gjson.Result) bool {
-			r, err := r.deRefJSON(value)
-			if err != nil {
-				iteratorErr = err
-				return false
-			}
-			res = append(res, r)
-			return true
-		})
-		if iteratorErr != nil {
-			return nil, iteratorErr
-		}
-		return res, nil
-	}
-	if j.IsObject() {
-		res := map[string]interface{}{}
-		var iteratorErr error
-		j.ForEach(func(key, value gjson.Result) bool {
-			r, err := r.deRefJSON(value)
-			if err != nil {
-				iteratorErr = err
-				return false
-			}
-			res[key.String()] = r
-			return true
-		})
-		if iteratorErr != nil {
-			return nil, iteratorErr
-		}
-		return res, nil
-	}
-	if j.IsBool() {
-		return j.Value(), nil
-	}
-	switch j.Type {
-	case gjson.String:
-		v := j.String()
-		if v[0] != '@' {
-			return v, nil
-		}
-		return r.Fn(v)
-	case gjson.Number:
-		fallthrough
-	case gjson.Null:
-		return j.Value(), nil
-	case gjson.JSON:
-		fallthrough
-	case gjson.True:
-		fallthrough
-	case gjson.False:
-		fallthrough
-	default:
-		panic(fmt.Sprintf("unhandled type: %v", j.Type.String()))
-	}
-}
-
-func resolvePath(path string, fn func(string) (interface{}, error)) (string, error) {
 	resolvedPath := ""
 	fragments := strings.Split(path, "/")
 	for _, fragment := range fragments {
@@ -215,7 +82,7 @@ func resolvePath(path string, fn func(string) (interface{}, error)) (string, err
 			continue
 		}
 		if len(fragment) > 0 && fragment[0] == '@' {
-			resolvedValue, err := fn(fragment)
+			resolvedValue, err := resolver.Resolve(fragment)
 			if err != nil {
 				return "", err
 			}
@@ -230,4 +97,59 @@ func resolvePath(path string, fn func(string) (interface{}, error)) (string, err
 		}
 	}
 	return resolvedPath, nil
+}
+
+func resolveQueryParams(qp url.Values, resolver resolver) (url.Values, error) {
+	res := url.Values{}
+	for k, v := range qp {
+		for _, value := range v {
+			if len(value) > 0 && value[0] == '@' {
+				resolvedValue, err := resolver.Resolve(value)
+				if err != nil {
+					return nil, err
+				}
+				if resolvedString, ok := resolvedValue.(string); ok {
+					res.Add(k, resolvedString)
+				} else {
+					return nil, fmt.Errorf("invalid type %T for key %s",
+						resolvedValue, value)
+				}
+			} else {
+				res.Add(k, value)
+			}
+		}
+	}
+	return res, nil
+}
+
+func resolveBody(request parser.Request, resolver resolver) ([]byte, error) {
+	bodyS := strings.Join(request.Body, "\n")
+	var body []byte
+
+	switch request.BodyEncoding {
+	case encodingY2J:
+		var i interface{}
+		err := yaml.Unmarshal([]byte(bodyS), &i)
+		if err != nil {
+			return nil, err
+		}
+		body, err = json.Marshal(i)
+		if err != nil {
+			return nil, err
+		}
+	case encodingHY2J:
+		jsonBytes, err := yaml.YAMLToJSON([]byte(bodyS))
+		if err != nil {
+			return nil, err
+		}
+		r := &BodyResolver{resolver: resolver}
+		body, err = r.Resolve(jsonBytes)
+		if err != nil {
+			return nil, err
+		}
+	case "":
+	default:
+		return nil, fmt.Errorf("invalid encoding: %v", request.BodyEncoding)
+	}
+	return body, nil
 }

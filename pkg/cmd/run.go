@@ -50,7 +50,7 @@ func requestIDs() ([]string, error) {
 	return requestIDs, nil
 }
 
-func Run(ctx context.Context, args ...string) error {
+func Run(ctx context.Context, args ...string) (err error) {
 	if len(args) < minArgs {
 		return fmt.Errorf("need a request to execute")
 	}
@@ -83,7 +83,15 @@ func Run(ctx context.Context, args ...string) error {
 	if err != nil {
 		return err
 	}
-	httpReq, err := request.Generate(global, req)
+	cache := cache.Get()
+	defer func() {
+		err = cache.Flush()
+	}()
+	httpReq, err := request.Generate(ctx, req, request.Options{
+		GlobalContext: global,
+		Cache:         cache,
+		Args:          args,
+	})
 	if err != nil {
 		return fmt.Errorf("failed to build request: %v", err)
 	}
