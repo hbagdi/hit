@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/hbagdi/hit/pkg/parser"
+	"github.com/tidwall/gjson"
 )
 
 type DiskCache struct {
@@ -25,19 +26,29 @@ func Get() *DiskCache {
 }
 
 func (c *DiskCache) Get(key string) (interface{}, error) {
-	pathElements := strings.Split(key, ".")
-	var r interface{} = c.m
-	for _, element := range pathElements {
-		m, ok := r.(map[string]interface{})
-		if !ok {
-			return nil, fmt.Errorf("failed to index key: %v", key)
-		}
-		r, ok = m[element]
-		if !ok {
-			return nil, fmt.Errorf("key not found: %v", key)
-		}
+	jsonCache, err := json.Marshal(c.m)
+	if err != nil {
+		return nil, err
 	}
-	return r, nil
+	js := gjson.ParseBytes(jsonCache)
+	res := js.Get(key)
+	switch res.Type {
+	case gjson.Null:
+		return nil, fmt.Errorf("key not found: '%v'", key)
+	case gjson.JSON:
+		return nil, fmt.Errorf("found json, expected a string, "+
+			"number or boolean for key '%v'", key)
+	case gjson.Number:
+		fallthrough
+	case gjson.False:
+		fallthrough
+	case gjson.True:
+		fallthrough
+	case gjson.String:
+		return res.Raw, nil
+	default:
+		panic(fmt.Sprintf("unexpected JSON data-type: %v", res.Type))
+	}
 }
 
 func (c *DiskCache) load() error {

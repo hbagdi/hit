@@ -1,55 +1,25 @@
 @_global
-base_url=http://httpbin.org
+base_url=http://localhost:7090
+#base_url=https://nodes.yolo42.com
 version=1
 
 
-@c0
-get
-/headers
-foo-header: bar
-
-
-@c1
-post
-/post?cluster.id=@c1.json.foo
-dad:sdf
+@gen-root-node
+POST
+/v1/node
 ~y2j
-foo: bar
+title: root-node
 
 
-@c11
-post
-/post
-dad:sdf
-~y2j
-foo: bar
+@get-node
+GET
+/v1/node/@2
 
 
-# sdf
-@c2
-post
-/post
+@create-child
+POST
+/v1/node
 ~hy2j
-name: "@c1.json.foo"
-
-@c300
-get
-/status/300
-dad:sdf
-~y2j
-foo: bar
-
-@c400
-get
-/status/400
-dad:sdf
-~y2j
-foo: bar
-
-@c500
-get
-/status/500
-dad:sdf
-~y2j
-foo: bar
+title: "@2"
+parent_id: "@3"
 
