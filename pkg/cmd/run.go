@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
@@ -49,7 +50,15 @@ func Run(ctx context.Context, args ...string) (err error) {
 	}
 	cache := cache.Get()
 	defer func() {
-		err = cache.Flush()
+		flushErr := cache.Flush()
+		if flushErr != nil {
+			if err != nil {
+				err = flushErr
+			} else {
+				// two errors, log the flush error and move on
+				log.Println("failed to flush cache:", err)
+			}
+		}
 	}()
 
 	err = executeRequest(ctx, req, request.Options{

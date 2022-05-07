@@ -26,7 +26,7 @@ func Get() *DiskCache {
 
 func (c *DiskCache) Get(key string) (interface{}, error) {
 	pathElements := strings.Split(key, ".")
-	var r interface{} = c
+	var r interface{} = c.m
 	for _, element := range pathElements {
 		m, ok := r.(map[string]interface{})
 		if !ok {
