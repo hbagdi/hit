@@ -1,0 +1,9 @@
+@_global
+base_url=https://httpbin.org
+version=1
+
+
+@get-headers
+GET
+/headers
+foo:bar

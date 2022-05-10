@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -81,6 +82,8 @@ func (c *DiskCache) Save(req parser.Request, resp *http.Response) error {
 	if err != nil {
 		return err
 	}
+	resp.Body = ioutil.NopCloser(bytes.NewReader(res))
+
 	var i interface{}
 	err = json.Unmarshal(res, &i)
 	if err != nil {

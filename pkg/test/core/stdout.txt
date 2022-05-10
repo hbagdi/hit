@@ -1,0 +1,23 @@
+GET /headers HTTP/1.1
+foo: bar
+User-Agent: hit/dev
+
+
+HTTP/2.0 200 OK
+Content-Length: 235
+Server: gunicorn/19.9.0
+Access-Control-Allow-Origin: *
+Access-Control-Allow-Credentials: true
+Date: Tue, 10 May 2022 00:56:21 GMT
+Content-Type: application/json
+{
+  "headers": {
+    "Accept-Encoding": "gzip",
+    "Foo": "bar",
+    "Host": "httpbin.org",
+    "Transfer-Encoding": "chunked",
+    "User-Agent": "hit/dev",
+    "X-Amzn-Trace-Id": "Root=1-6279b835-579139731e90e49420df451e"
+  }
+}
+

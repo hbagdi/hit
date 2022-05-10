@@ -4,17 +4,13 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"net/http"
-	"time"
 
 	"github.com/hbagdi/hit/pkg/cache"
-	"github.com/hbagdi/hit/pkg/parser"
-	"github.com/hbagdi/hit/pkg/request"
+	executorPkg "github.com/hbagdi/hit/pkg/executor"
 )
 
 const (
 	minArgs = 2
-	timeout = 10 * time.Second
 )
 
 func Run(ctx context.Context, args ...string) (err error) {
@@ -36,18 +32,6 @@ func Run(ctx context.Context, args ...string) (err error) {
 	}
 	id = id[1:]
 
-	files, err := loadFiles()
-	if err != nil {
-		return fmt.Errorf("read hit files: %v", err)
-	}
-	req, err := fetchRequest(id, files)
-	if err != nil {
-		return fmt.Errorf("request '@%s' not found", id)
-	}
-	global, err := fetchGlobal(files)
-	if err != nil {
-		return err
-	}
 	cache := cache.Get()
 	defer func() {
 		flushErr := cache.Flush()
@@ -61,49 +45,40 @@ func Run(ctx context.Context, args ...string) (err error) {
 		}
 	}()
 
-	err = executeRequest(ctx, req, request.Options{
-		GlobalContext: global,
-		Cache:         cache,
-		Args:          args,
+	executor, err := executorPkg.NewExecutor(&executorPkg.Opts{
+		Cache: cache,
 	})
-	return err
-}
-
-func executeRequest(ctx context.Context, req parser.Request, opts request.Options) error {
-	httpReq, err := request.Generate(ctx, req, opts)
 	if err != nil {
-		return fmt.Errorf("failed to build request: %v", err)
+		return fmt.Errorf("initialize executor: %v", err)
+	}
+	defer executor.Close()
+
+	err = executor.LoadFiles()
+	if err != nil {
+		return fmt.Errorf("read hit files: %v", err)
 	}
 
-	err = printRequest(httpReq)
+	req, err := executor.BuildRequest(id, &executorPkg.RequestOpts{
+		Params: args,
+	})
 	if err != nil {
-		return err
+		return fmt.Errorf("build request: %v", err)
 	}
 
-	// execute
+	err = printRequest(req.HTTPRequest)
 	if err != nil {
-		return fmt.Errorf("failed to dump request: %v", err)
-	}
-	ctx, cancel := context.WithTimeout(ctx, timeout)
-	defer cancel()
-	httpReq = httpReq.WithContext(ctx)
-	resp, err := http.DefaultClient.Do(httpReq)
-	if err != nil {
-		return fmt.Errorf("request: %v", err)
+		return fmt.Errorf("print request: %v", err)
 	}
 
-	defer func() {
-		_ = resp.Body.Close()
-	}()
+	resp, err := executor.Execute(ctx, req)
+	if err != nil {
+		return fmt.Errorf("execute request: %v", err)
+	}
+
 	err = printResponse(resp)
 	if err != nil {
 		return err
 	}
 
-	// save cached response
-	err = opts.Cache.Save(req, resp)
-	if err != nil {
-		return fmt.Errorf("saving response: %v", err)
-	}
-	return nil
+	return err
 }
