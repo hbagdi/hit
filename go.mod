@@ -6,7 +6,7 @@ require (
 	github.com/fatih/color v1.13.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/hokaccha/go-prettyjson v0.0.0-20211117102719-0474bc63780f
-	github.com/tidwall/gjson v1.14.0
+	github.com/tidwall/gjson v1.14.1
 )
 
 require (
