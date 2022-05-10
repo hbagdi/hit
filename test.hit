@@ -1,6 +1,5 @@
 @_global
-base_url=http://localhost:7090
-#base_url=https://nodes.yolo42.com
+base_url=https://nodes.yolo42.com
 version=1
 
 
@@ -15,11 +14,13 @@ title: root-node
 GET
 /v1/node/@2
 
-
-@create-child
+@create-node
 POST
 /v1/node
 ~hy2j
 title: "@2"
 parent_id: "@3"
 
+@delete-node
+DELETE
+/v1/node/@2
