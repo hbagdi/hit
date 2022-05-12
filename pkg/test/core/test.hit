@@ -7,3 +7,25 @@ version=1
 GET
 /headers
 foo:bar
+
+
+@populate-cache
+POST
+/anything
+~y2j
+string: foobar
+bool-true: true
+bool-false: false
+num: 42
+num-float: 42.42
+
+@get-using-cache
+GET
+/anything
+foo:bar
+~hy2j
+string: "@populate-cache.json.string"
+bool-true: "@populate-cache.json.bool-true"
+bool-false: "@populate-cache.json.bool-false"
+num: "@populate-cache.json.num"
+num-float: "@populate-cache.json.num-float"

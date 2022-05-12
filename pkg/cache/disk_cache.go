@@ -40,13 +40,13 @@ func (c *DiskCache) Get(key string) (interface{}, error) {
 		return nil, fmt.Errorf("found json, expected a string, "+
 			"number or boolean for key '%v'", key)
 	case gjson.Number:
-		fallthrough
+		return res.Num, nil
 	case gjson.False:
-		fallthrough
+		return false, nil
 	case gjson.True:
-		fallthrough
+		return true, nil
 	case gjson.String:
-		return res.Raw, nil
+		return res.Str, nil
 	default:
 		panic(fmt.Sprintf("unexpected JSON data-type: %v", res.Type))
 	}
