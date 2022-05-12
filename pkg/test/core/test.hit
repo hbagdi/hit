@@ -29,3 +29,11 @@ bool-true: "@populate-cache.json.bool-true"
 bool-false: "@populate-cache.json.bool-false"
 num: "@populate-cache.json.num"
 num-float: "@populate-cache.json.num-float"
+
+@get-cache-ref-in-path
+GET
+/anything/@populate-cache.json.string
+
+@get-cache-ref-in-query-param
+GET
+/anything/qp?foo=@populate-cache.json.num

@@ -82,16 +82,11 @@ func resolvePath(path string, resolver resolver) (string, error) {
 			continue
 		}
 		if len(fragment) > 0 && fragment[0] == '@' {
-			resolvedValue, err := resolver.Resolve(fragment)
+			str, err := resolveValue(fragment, resolver)
 			if err != nil {
 				return "", err
 			}
-			if resolvedFragment, ok := resolvedValue.(string); ok {
-				resolvedPath += "/" + resolvedFragment
-			} else {
-				return "", fmt.Errorf("invalid type %T for key %s",
-					resolvedValue, fragment)
-			}
+			resolvedPath += "/" + str
 		} else {
 			resolvedPath += "/" + fragment
 		}
@@ -104,22 +99,42 @@ func resolveQueryParams(qp url.Values, resolver resolver) (url.Values, error) {
 	for k, v := range qp {
 		for _, value := range v {
 			if len(value) > 0 && value[0] == '@' {
-				resolvedValue, err := resolver.Resolve(value)
+				str, err := resolveValue(value, resolver)
 				if err != nil {
 					return nil, err
 				}
-				if resolvedString, ok := resolvedValue.(string); ok {
-					res.Add(k, resolvedString)
-				} else {
-					return nil, fmt.Errorf("invalid type %T for key %s",
-						resolvedValue, value)
-				}
+				res.Add(k, str)
 			} else {
 				res.Add(k, value)
 			}
 		}
 	}
 	return res, nil
+}
+
+func resolveValue(key string, resolver resolver) (string, error) {
+	resolvedValue, err := resolver.Resolve(key)
+	if err != nil {
+		return "", err
+	}
+	str, err := getStringOrErr(resolvedValue)
+	if err != nil {
+		return "", err
+	}
+	return str, nil
+}
+
+func getStringOrErr(value interface{}) (string, error) {
+	switch value.(type) {
+	case bool:
+		return fmt.Sprintf("%v", value), nil
+	case float64:
+		return fmt.Sprintf("%v", value), nil
+	case string:
+		return fmt.Sprintf("%v", value), nil
+	default:
+		return "", fmt.Errorf("invalid type %T for key %s", value, value)
+	}
 }
 
 func resolveBody(request parser.Request, resolver resolver) ([]byte, error) {

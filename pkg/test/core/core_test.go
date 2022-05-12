@@ -97,6 +97,42 @@ func TestBasic(t *testing.T) {
 			Num
 		require.Equal(t, 42.42, numFloat)
 	})
+	t.Run("request with path referencing cache", func(t *testing.T) {
+		req, err := e.BuildRequest("get-cache-ref-in-path", nil)
+		require.Nil(t, err)
+		require.NotNil(t, req)
+		require.Equal(t, "https://httpbin.org/anything/foobar",
+			req.HTTPRequest.URL.String())
+
+		res, err := e.Execute(context.Background(), req)
+		require.Nil(t, err)
+		require.Equal(t, http.StatusOK, res.StatusCode)
+		js := gjsonBody(t, res)
+
+		url := js.Get("url").String()
+		require.Equal(t, "https://httpbin.org/anything/foobar", url)
+	})
+	t.Run("request with query param referencing cache", func(t *testing.T) {
+		req, err := e.BuildRequest("get-cache-ref-in-query-param", nil)
+		require.Nil(t, err)
+		require.NotNil(t, req)
+		require.Equal(t, "https://httpbin.org/anything/qp?foo=42",
+			req.HTTPRequest.URL.String())
+
+		res, err := e.Execute(context.Background(), req)
+		require.Nil(t, err)
+		require.Equal(t, http.StatusOK, res.StatusCode)
+		js := gjsonBody(t, res)
+
+		url := js.Get("url").String()
+		require.Equal(t, "https://httpbin.org/anything/qp?foo=42", url)
+	})
+	t.Run("non existent request errors", func(t *testing.T) {
+		req, err := e.BuildRequest("get-does-not-exist", nil)
+		require.NotNil(t, err)
+		require.Equal(t, "request 'get-does-not-exist' not found", err.Error())
+		require.Nil(t, req)
+	})
 }
 
 func gjsonBody(t *testing.T, res *http.Response) gjson.Result {
