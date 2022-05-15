@@ -35,16 +35,19 @@ func Parse(filename string) (File, error) {
 	if err != nil {
 		return File{}, err
 	}
+	defer f.Close()
+
 	var res File
 	r := bufio.NewReader(f)
-	sc := bufio.NewScanner(r)
-	for sc.Scan() {
-		line := sc.Text()
+	sc := &scanner{bufio.NewScanner(r)}
+	for {
+		scanned, line := sc.Line()
+		if !scanned {
+			break
+		}
+
 		switch {
 		case line == "":
-			continue
-		case strings.HasPrefix(line, "#"):
-			// skip comments
 			continue
 		case line == "@_global":
 			err := global(sc, &res.Global)
@@ -68,12 +71,15 @@ func Parse(filename string) (File, error) {
 	return res, nil
 }
 
-func request(id string, sc *bufio.Scanner) (Request, error) {
+func request(id string, sc *scanner) (Request, error) {
 	var res Request
 	res.ID = id
 	var lines []string
-	for sc.Scan() {
-		line := sc.Text()
+	for {
+		scanned, line := sc.Line()
+		if !scanned {
+			break
+		}
 		if line == "" {
 			break
 		}
@@ -174,28 +180,45 @@ func method(s string) (string, error) {
 	return strings.ToUpper(s), nil
 }
 
-func global(sc *bufio.Scanner, g *Global) error {
-	for sc.Scan() {
-		line := sc.Text()
-		switch {
-		case line == "":
+func global(sc *scanner, g *Global) error {
+	for {
+		scanned, line := sc.Line()
+		if !scanned {
+			break
+		}
+		if line == "" {
 			return nil
-		default:
-			kv := strings.Split(line, "=")
-			if len(kv) != kvSplitCount {
-				return fmt.Errorf("failed to parse line '%v'", line)
+		}
+		kv := strings.Split(line, "=")
+		if len(kv) != kvSplitCount {
+			return fmt.Errorf("failed to parse line '%v'", line)
+		}
+		if kv[0] == "base_url" {
+			g.BaseURL = kv[1]
+		}
+		if kv[0] == "version" {
+			v, err := strconv.Atoi(kv[1])
+			if err != nil {
+				return fmt.Errorf("invalid version '%v'", kv[1])
 			}
-			if kv[0] == "base_url" {
-				g.BaseURL = kv[1]
-			}
-			if kv[0] == "version" {
-				v, err := strconv.Atoi(kv[1])
-				if err != nil {
-					return fmt.Errorf("invalid version '%v'", kv[1])
-				}
-				g.Version = v
-			}
+			g.Version = v
 		}
 	}
 	return nil
+}
+
+type scanner struct {
+	sc *bufio.Scanner
+}
+
+func (s *scanner) Line() (bool, string) {
+	if scanned := s.sc.Scan(); !scanned {
+		return false, ""
+	}
+	line := s.sc.Text()
+	// eat comments
+	if strings.HasPrefix(line, "#") {
+		return s.Line()
+	}
+	return true, line
 }
