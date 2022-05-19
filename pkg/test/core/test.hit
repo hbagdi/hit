@@ -37,3 +37,9 @@ GET
 @get-cache-ref-in-query-param
 GET
 /anything/qp?foo=@populate-cache.json.num
+
+@cli-arg-types
+POST
+/anything/@2
+~hy2j
+input: "@2"

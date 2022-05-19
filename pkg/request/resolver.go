@@ -29,9 +29,28 @@ func (r cacheResolver) Resolve(key string) (interface{}, error) {
 	if err == nil && n < len(os.Args) {
 		v := r.args[n]
 		if v[0] != '@' {
-			return v, nil
+			return typedValue(v), nil
 		}
 		key = v[1:]
 	}
 	return r.cache.Get(key)
+}
+
+const floatBitSize = 64
+
+func typedValue(v string) interface{} {
+	n, err := strconv.Atoi(v)
+	if err == nil {
+		return n
+	}
+	f, err := strconv.ParseFloat(v, floatBitSize)
+	if err == nil {
+		return f
+	}
+	if v == "true" {
+		return true
+	} else if v == "false" {
+		return false
+	}
+	return v
 }

@@ -126,6 +126,8 @@ func resolveValue(key string, resolver resolver) (string, error) {
 
 func getStringOrErr(value interface{}) (string, error) {
 	switch value.(type) {
+	case int:
+		return fmt.Sprintf("%v", value), nil
 	case bool:
 		return fmt.Sprintf("%v", value), nil
 	case float64:

@@ -133,6 +133,76 @@ func TestBasic(t *testing.T) {
 		require.Equal(t, "request 'get-does-not-exist' not found", err.Error())
 		require.Nil(t, req)
 	})
+	t.Run("string input via CLI is injected", func(t *testing.T) {
+		req, err := e.BuildRequest("cli-arg-types", &executor.RequestOpts{
+			Params: []string{"hit-test", "@req", "foobar"},
+		})
+		require.Nil(t, err)
+		require.Equal(t, "https://httpbin.org/anything/foobar",
+			req.HTTPRequest.URL.String())
+		res, err := e.Execute(context.Background(), req)
+		require.Nil(t, err)
+		require.Equal(t, http.StatusOK, res.StatusCode)
+		js := gjsonBody(t, res)
+		input := js.Get("json.input").String()
+		require.Equal(t, "foobar", input)
+	})
+	t.Run("number input via CLI is injected", func(t *testing.T) {
+		req, err := e.BuildRequest("cli-arg-types", &executor.RequestOpts{
+			Params: []string{"hit-test", "@req", "42"},
+		})
+		require.Nil(t, err)
+		require.Equal(t, "https://httpbin.org/anything/42",
+			req.HTTPRequest.URL.String())
+		res, err := e.Execute(context.Background(), req)
+		require.Nil(t, err)
+		require.Equal(t, http.StatusOK, res.StatusCode)
+		js := gjsonBody(t, res)
+		input := js.Get("json.input").Int()
+		require.Equal(t, int64(42), input)
+	})
+	t.Run("float input via CLI is injected", func(t *testing.T) {
+		req, err := e.BuildRequest("cli-arg-types", &executor.RequestOpts{
+			Params: []string{"hit-test", "@req", "42.2442"},
+		})
+		require.Nil(t, err)
+		require.Equal(t, "https://httpbin.org/anything/42.2442",
+			req.HTTPRequest.URL.String())
+		res, err := e.Execute(context.Background(), req)
+		require.Nil(t, err)
+		require.Equal(t, http.StatusOK, res.StatusCode)
+		js := gjsonBody(t, res)
+		input := js.Get("json.input").Float()
+		require.Equal(t, 42.2442, input)
+	})
+	t.Run("bool true input via CLI is injected", func(t *testing.T) {
+		req, err := e.BuildRequest("cli-arg-types", &executor.RequestOpts{
+			Params: []string{"hit-test", "@req", "true"},
+		})
+		require.Nil(t, err)
+		require.Equal(t, "https://httpbin.org/anything/true",
+			req.HTTPRequest.URL.String())
+		res, err := e.Execute(context.Background(), req)
+		require.Nil(t, err)
+		require.Equal(t, http.StatusOK, res.StatusCode)
+		js := gjsonBody(t, res)
+		input := js.Get("json.input").Bool()
+		require.Equal(t, true, input)
+	})
+	t.Run("bool false input via CLI is injected", func(t *testing.T) {
+		req, err := e.BuildRequest("cli-arg-types", &executor.RequestOpts{
+			Params: []string{"hit-test", "@req", "false"},
+		})
+		require.Nil(t, err)
+		require.Equal(t, "https://httpbin.org/anything/false",
+			req.HTTPRequest.URL.String())
+		res, err := e.Execute(context.Background(), req)
+		require.Nil(t, err)
+		require.Equal(t, http.StatusOK, res.StatusCode)
+		js := gjsonBody(t, res)
+		input := js.Get("json.input").Bool()
+		require.Equal(t, false, input)
+	})
 }
 
 func gjsonBody(t *testing.T, res *http.Response) gjson.Result {
