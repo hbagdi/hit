@@ -15,24 +15,43 @@ const (
 
 var cacheFilePath string
 
+func getUserCacheDir() (string, error) {
+	userCacheDir, err := os.UserCacheDir()
+	if err != nil {
+		return "", fmt.Errorf("failed to find user's cache directory: %w", err)
+	}
+	return userCacheDir, nil
+}
+
+func HitCacheDir() (string, error) {
+	userCacheDir, err := getUserCacheDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(userCacheDir, cacheDir), nil
+}
+
 // init ensures that the cache files are correctly setup.
 func init() {
-	userCacheDir, err := os.UserCacheDir()
+	userCacheDir, err := getUserCacheDir()
 	if err != nil {
 		panic(fmt.Sprintf("failed to find cache directory: %v", err))
 	}
 	if err = ensureDir(userCacheDir, os.ModePerm); err != nil {
 		panic(err)
 	}
-	if err = ensureDir(filepath.Join(userCacheDir, cacheDir),
-		os.ModePerm); err != nil {
+	hitCacheDir, err := HitCacheDir()
+	if err != nil {
 		panic(err)
 	}
-	if err = ensureFile(filepath.Join(userCacheDir,
-		cacheDir, cacheFile), fileMode); err != nil {
+	if err = ensureDir(hitCacheDir, os.ModePerm); err != nil {
 		panic(err)
 	}
-	cacheFilePath = filepath.Join(userCacheDir, cacheDir, cacheFile)
+	hitCacheFile := filepath.Join(hitCacheDir, cacheFile)
+	if err = ensureFile(hitCacheFile, fileMode); err != nil {
+		panic(err)
+	}
+	cacheFilePath = hitCacheFile
 }
 
 func ensureFile(path string, perm os.FileMode) error {

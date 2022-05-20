@@ -4,14 +4,42 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
+	"sync"
 
+	"github.com/blang/semver/v4"
 	"github.com/hbagdi/hit/pkg/cache"
 	executorPkg "github.com/hbagdi/hit/pkg/executor"
+	"github.com/hbagdi/hit/pkg/version"
 )
 
 const (
 	minArgs = 2
 )
+
+var (
+	versionLoadMutex sync.Mutex
+	latestVersion    string
+)
+
+func init() {
+	go func() {
+		versionLoadMutex.Lock()
+		defer versionLoadMutex.Unlock()
+		version, err := version.LoadLatestVersion()
+		if err != nil {
+			// TODO(hbagdi): add logging
+			return
+		}
+		latestVersion = version
+	}()
+}
+
+func getLatestVersion() string {
+	versionLoadMutex.Lock()
+	defer versionLoadMutex.Unlock()
+	return latestVersion
+}
 
 func Run(ctx context.Context, args ...string) (err error) {
 	if len(args) < minArgs {
@@ -80,5 +108,36 @@ func Run(ctx context.Context, args ...string) (err error) {
 		return err
 	}
 
+	printLatestVersion()
 	return err
+}
+
+func printLatestVersion() {
+	latestVersion := getLatestVersion()
+	if latestVersion == "" {
+		return
+	}
+	latest, err := semver.New(cleanVersionString(latestVersion))
+	if err != nil {
+		// TODO(hbagdi): log error
+		return
+	}
+
+	current, err := semver.New(cleanVersionString(version.Version))
+	if err != nil {
+		// TODO(hbagdi): log error
+		return
+	}
+	if latest.GT(*current) {
+		fmt.Printf("New version(%s) available! Current installed version is"+
+			" %s.\nCheckout https://hit.yolo42.com for details.\n",
+			latestVersion, version.Version)
+	}
+}
+
+func cleanVersionString(v string) string {
+	if strings.HasPrefix(v, "v") {
+		return v[1:]
+	}
+	return v
 }

@@ -3,6 +3,7 @@ module github.com/hbagdi/hit
 go 1.17
 
 require (
+	github.com/blang/semver/v4 v4.0.0
 	github.com/fatih/color v1.13.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/hokaccha/go-prettyjson v0.0.0-20211117102719-0474bc63780f
