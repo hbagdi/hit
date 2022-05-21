@@ -12,6 +12,8 @@ import (
 	"time"
 
 	"github.com/hbagdi/hit/pkg/cache"
+	"github.com/hbagdi/hit/pkg/log"
+	"go.uber.org/zap"
 )
 
 const (
@@ -33,8 +35,10 @@ func checkForUpdate() (string, error) {
 		return "", err
 	}
 	defer func() {
-		// TODO(hbagdi): handle err
-		_ = res.Body.Close()
+		err := res.Body.Close()
+		if err != nil {
+			log.Logger.Debug("version-check: failed to close response body", zap.Error(err))
+		}
 	}()
 	if res.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("unexpected status code: %v", res.StatusCode)
@@ -108,8 +112,10 @@ func refreshVersionCache() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	// TODO(hbagdi): log this error
-	_ = updateCache(version)
+	err = updateCache(version)
+	if err != nil {
+		log.Logger.Debug("version-check: failed to update version cache", zap.Error(err))
+	}
 
 	return version, nil
 }

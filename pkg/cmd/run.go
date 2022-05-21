@@ -3,14 +3,15 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"log"
 	"strings"
 	"sync"
 
 	"github.com/blang/semver/v4"
 	"github.com/hbagdi/hit/pkg/cache"
 	executorPkg "github.com/hbagdi/hit/pkg/executor"
+	"github.com/hbagdi/hit/pkg/log"
 	"github.com/hbagdi/hit/pkg/version"
+	"go.uber.org/zap"
 )
 
 const (
@@ -22,13 +23,25 @@ var (
 	latestVersion    string
 )
 
+func setupLogger() {
+	c := zap.NewDevelopmentConfig()
+	c.OutputPaths = []string{"stderr"}
+	c.Level = zap.NewAtomicLevelAt(zap.InfoLevel)
+	zapLogger, err := c.Build()
+	if err != nil {
+		panic(fmt.Sprintf("failed to init logger: %v", err))
+	}
+	log.Logger = zapLogger
+}
+
 func init() {
+	setupLogger()
 	go func() {
 		versionLoadMutex.Lock()
 		defer versionLoadMutex.Unlock()
 		version, err := version.LoadLatestVersion()
 		if err != nil {
-			// TODO(hbagdi): add logging
+			log.Logger.Debug("failed to load latest version", zap.Error(err))
 			return
 		}
 		latestVersion = version
@@ -42,6 +55,10 @@ func getLatestVersion() string {
 }
 
 func Run(ctx context.Context, args ...string) (err error) {
+	defer func() {
+		_ = log.Logger.Sync()
+	}()
+	log.Logger.Debug("starting run cmd")
 	if len(args) < minArgs {
 		return fmt.Errorf("need a request to execute")
 	}
@@ -68,7 +85,7 @@ func Run(ctx context.Context, args ...string) (err error) {
 				err = flushErr
 			} else {
 				// two errors, log the flush error and move on
-				log.Println("failed to flush cache:", err)
+				log.Logger.Error("failed to flush cache:", zap.Error(err))
 			}
 		}
 	}()
@@ -119,13 +136,15 @@ func printLatestVersion() {
 	}
 	latest, err := semver.New(cleanVersionString(latestVersion))
 	if err != nil {
-		// TODO(hbagdi): log error
+		log.Logger.Debug("failed to parse latest semantic version",
+			zap.Error(err), zap.String("version", latestVersion))
 		return
 	}
 
 	current, err := semver.New(cleanVersionString(version.Version))
 	if err != nil {
-		// TODO(hbagdi): log error
+		log.Logger.Debug("failed to parse current semantic version",
+			zap.Error(err), zap.String("version", latestVersion))
 		return
 	}
 	if latest.GT(*current) {
