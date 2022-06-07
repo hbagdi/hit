@@ -58,6 +58,18 @@ func TestBasic(t *testing.T) {
 			String()
 		require.Equal(t, "bar", headerValue)
 	})
+	t.Run("content-type header is set with static body", func(t *testing.T) {
+		req, err := e.BuildRequest("post-with-static-body", nil)
+		require.Nil(t, err)
+		require.NotNil(t, req)
+		res, err := e.Execute(context.Background(), req)
+		require.Nil(t, err)
+		defer res.Body.Close()
+		require.Equal(t, http.StatusOK, res.StatusCode)
+		body := gjsonBody(t, res)
+		contentTypeHeaderValue := body.Get("headers.Content-Type").String()
+		require.Equal(t, "application/json", contentTypeHeaderValue)
+	})
 	t.Run("populate cache", func(t *testing.T) {
 		req, err := e.BuildRequest("populate-cache", nil)
 		require.Nil(t, err)
@@ -66,6 +78,9 @@ func TestBasic(t *testing.T) {
 		require.Nil(t, err)
 		defer res.Body.Close()
 		require.Equal(t, http.StatusOK, res.StatusCode)
+		body := gjsonBody(t, res)
+		contentTypeHeaderValue := body.Get("headers.Content-Type").String()
+		require.Equal(t, "application/json", contentTypeHeaderValue)
 	})
 	t.Run("request with body referencing cache", func(t *testing.T) {
 		req, err := e.BuildRequest("get-using-cache", nil)

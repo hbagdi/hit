@@ -34,9 +34,12 @@ func Generate(ctx context.Context, request parser.Request, opts Options) (*http.
 		return nil, err
 	}
 
-	body, err := resolveBody(request, resolver)
+	body, cType, err := resolveBody(request, resolver)
 	if err != nil {
 		return nil, err
+	}
+	if cType == contentTypeInvalid {
+		return nil, fmt.Errorf("invalid content-type")
 	}
 
 	httpReq, err := http.NewRequestWithContext(ctx, request.Method,
@@ -46,6 +49,12 @@ func Generate(ctx context.Context, request parser.Request, opts Options) (*http.
 	}
 	if request.Headers != nil {
 		httpReq.Header = request.Headers
+	}
+	switch cType {
+	case contentTypeJSON:
+		httpReq.Header.Set("content-type", "application/json")
+	default:
+		return nil, fmt.Errorf("invalid content-type")
 	}
 	httpReq.Header.Add("user-agent", "hit/"+version.Version)
 	return httpReq, nil
@@ -139,7 +148,14 @@ func getStringOrErr(value interface{}) (string, error) {
 	}
 }
 
-func resolveBody(request parser.Request, resolver resolver) ([]byte, error) {
+type contentType int
+
+const (
+	contentTypeInvalid = iota
+	contentTypeJSON
+)
+
+func resolveBody(request parser.Request, resolver resolver) ([]byte, contentType, error) {
 	bodyS := strings.Join(request.Body, "\n")
 	var body []byte
 
@@ -148,25 +164,26 @@ func resolveBody(request parser.Request, resolver resolver) ([]byte, error) {
 		var i interface{}
 		err := yaml.Unmarshal([]byte(bodyS), &i)
 		if err != nil {
-			return nil, err
+			return nil, contentTypeInvalid, err
 		}
 		body, err = json.Marshal(i)
 		if err != nil {
-			return nil, err
+			return nil, contentTypeInvalid, err
 		}
 	case encodingHY2J:
 		jsonBytes, err := yaml.YAMLToJSON([]byte(bodyS))
 		if err != nil {
-			return nil, err
+			return nil, contentTypeInvalid, err
 		}
 		r := &BodyResolver{resolver: resolver}
 		body, err = r.Resolve(jsonBytes)
 		if err != nil {
-			return nil, err
+			return nil, contentTypeInvalid, err
 		}
 	case "":
 	default:
-		return nil, fmt.Errorf("invalid encoding: %v", request.BodyEncoding)
+		return nil, contentTypeInvalid,
+			fmt.Errorf("invalid encoding: %v", request.BodyEncoding)
 	}
-	return body, nil
+	return body, contentTypeJSON, nil
 }

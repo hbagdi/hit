@@ -43,3 +43,11 @@ POST
 /anything/@2
 ~hy2j
 input: "@2"
+
+
+@post-with-static-body
+POST
+/anything
+~y2j
+foo: bar
+baz: buz
