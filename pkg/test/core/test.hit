@@ -51,3 +51,13 @@ POST
 ~y2j
 foo: bar
 baz: buz
+
+@post-static-json
+POST
+/anything
+~y2j
+string: foobar
+bool-true: true
+bool-false: false
+num: 42
+num-float: 42.42

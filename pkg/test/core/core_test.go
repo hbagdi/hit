@@ -41,6 +41,23 @@ func TestBasic(t *testing.T) {
 
 	require.Nil(t, e.LoadFiles())
 
+	t.Run("successfully performs a request with static yaml", func(t *testing.T) {
+		req, err := e.BuildRequest("post-static-json", nil)
+		require.Nil(t, err)
+		require.NotNil(t, req)
+
+		res, err := e.Execute(context.Background(), req)
+		require.Nil(t, err)
+		require.NotNil(t, res)
+		require.Equal(t, http.StatusOK, res.StatusCode)
+
+		body := gjsonBody(t, res)
+		require.Equal(t, "foobar", body.Get("json.string").String())
+		require.Equal(t, int64(42), body.Get("json.num").Int())
+		require.Equal(t, 42.42, body.Get("json.num-float").Float())
+		require.Equal(t, false, body.Get("json.bool-false").Bool())
+		require.Equal(t, true, body.Get("json.bool-true").Bool())
+	})
 	t.Run("successfully performs a basic request", func(t *testing.T) {
 		req, err := e.BuildRequest("get-headers", nil)
 		require.Nil(t, err)
