@@ -1,6 +1,8 @@
 name: Seeking help
 description: Ask a question to get help with using hit
 title: "[Question]: "
+labels:
+- question
 assignees:
   - hbagdi
 body:

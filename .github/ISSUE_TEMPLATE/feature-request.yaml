@@ -1,0 +1,18 @@
+name: Feature request
+description: Submit a request for a new feature addition to hit
+title: "[Feature]: "
+labels:
+- feature-request
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks you for using hit. Please describe your feature request below:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: Describe the problem you are running into without speciying a solution.
+      placeholder: I'm working with a custom protocol and there is no way to use the protocol with hit.
+    validations:
+      required: true
