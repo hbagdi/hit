@@ -1,0 +1,28 @@
+name: Seeking help
+description: Ask a question to get help with using hit
+title: "[Question]: "
+assignees:
+  - hbagdi
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks you for using hit. Please ask your question below:
+  - type: textarea
+    id: question
+    attributes:
+      label: Ask your question
+      description: Please include any relevant hit file and background.
+      placeholder: I can't use hit to foo. How to do it?
+    validations:
+      required: true
+  - type: textarea
+    id: version
+    attributes:
+      label: Version
+      description: What version of hit are you running?
+      placeholder: You can find the current version using 'hit version'.
+      render: shell
+    validations:
+      required: true
+
