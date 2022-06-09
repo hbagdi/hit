@@ -144,6 +144,21 @@ func TestBasic(t *testing.T) {
 		url := js.Get("url").String()
 		require.Equal(t, "https://httpbin.org/anything/foobar", url)
 	})
+	t.Run("request with path referencing cache in a path segment", func(t *testing.T) {
+		req, err := e.BuildRequest("get-cache-ref-in-path-in-middle", nil)
+		require.Nil(t, err)
+		require.NotNil(t, req)
+		require.Equal(t, "https://httpbin.org/anything/foobar/baz",
+			req.HTTPRequest.URL.String())
+
+		res, err := e.Execute(context.Background(), req)
+		require.Nil(t, err)
+		require.Equal(t, http.StatusOK, res.StatusCode)
+		js := gjsonBody(t, res)
+
+		url := js.Get("url").String()
+		require.Equal(t, "https://httpbin.org/anything/foobar/baz", url)
+	})
 	t.Run("request with query param referencing cache", func(t *testing.T) {
 		req, err := e.BuildRequest("get-cache-ref-in-query-param", nil)
 		require.Nil(t, err)

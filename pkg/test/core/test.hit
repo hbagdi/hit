@@ -34,6 +34,10 @@ num-float: "@populate-cache.json.num-float"
 GET
 /anything/@populate-cache.json.string
 
+@get-cache-ref-in-path-in-middle
+GET
+/anything/@populate-cache.json.string/baz
+
 @get-cache-ref-in-query-param
 GET
 /anything/qp?foo=@populate-cache.json.num
