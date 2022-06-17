@@ -152,7 +152,7 @@ func (e *Executor) Execute(ctx context.Context, req *Request) (*http.Response, e
 	defer cancel()
 	httpRequest = httpRequest.WithContext(ctx)
 
-	clonedRequest, err := cloneHTTPRequest(httpRequest) //nolint:contextcheck
+	clonedRequest, err := cloneHTTPRequest(httpRequest)
 	if err != nil {
 		return nil, err
 	}
