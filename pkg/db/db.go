@@ -37,13 +37,23 @@ func init() {
 	dbFilePath = filepath.Join(cacheDir, dbFilename)
 }
 
+func genDSN(fileName string) string {
+	dsn := fmt.Sprintf("%s?_journal_mode=WAL&_busy_timeout=500", fileName)
+	return dsn
+}
+
 func NewStore(opts StoreOpts) (*Store, error) {
-	db, err := sql.Open("sqlite3", dbFilePath)
+	dsn := genDSN(dbFilePath)
+	db, err := sql.Open("sqlite3", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open db file: %v", err)
 	}
 	if opts.Logger == nil {
 		return nil, fmt.Errorf("no logger")
+	}
+	err = migrate(db)
+	if err != nil {
+		return nil, err
 	}
 	return &Store{
 		db:     db,
