@@ -1,16 +1,13 @@
 package cache
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"net/http"
 	"os"
 	"strings"
 
-	"github.com/hbagdi/hit/pkg/parser"
 	"github.com/tidwall/gjson"
 )
 
@@ -73,23 +70,18 @@ func (c *DiskCache) load() error {
 	return nil
 }
 
-func (c *DiskCache) Save(req parser.Request, resp *http.Response) error {
-	contentType := resp.Header.Get("content-type")
+func (c *DiskCache) Save(hit Hit) error {
+	contentType := hit.Response.Headers.Get("content-type")
 	if !strings.Contains(contentType, "application/json") {
 		return nil
 	}
-	res, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
-	resp.Body = ioutil.NopCloser(bytes.NewReader(res))
 
 	var i interface{}
-	err = json.Unmarshal(res, &i)
+	err := json.Unmarshal(hit.Response.Body, &i)
 	if err != nil {
-		return err
+		return fmt.Errorf("json unmarshal: %v", err)
 	}
-	c.m[req.ID] = i
+	c.m[hit.HitRequestID] = i
 	return nil
 }
 

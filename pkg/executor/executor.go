@@ -1,8 +1,10 @@
 package executor
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"path/filepath"
@@ -156,8 +158,11 @@ func (e *Executor) Execute(ctx context.Context, req *Request) (*http.Response, e
 	// save cached response
 	// TODO(hbagdi): does this clone the body? Doesn't seem like it
 
-	clonedRequest := req.HTTPRequest.Clone(context.Background())
-	err = e.cache.Save(*clonedRequest, resp)
+	hit, err := getHit(req.parserRequest, req.HTTPRequest, resp)
+	if err != nil {
+		return nil, fmt.Errorf("render hit: %v", err)
+	}
+	err = e.cache.Save(hit)
 	if err != nil {
 		return nil, fmt.Errorf("save response: %v", err)
 	}
@@ -172,4 +177,22 @@ func (e *Executor) AllRequestIDs() ([]string, error) {
 		}
 	}
 	return requestIDs, nil
+}
+
+func getHit(parserRequest parser.Request, _ *http.Request, httpResponse *http.Response) (cache.Hit, error) {
+	responseBody, err := ioutil.ReadAll(httpResponse.Body)
+	if err != nil {
+		return cache.Hit{}, err
+	}
+	httpResponse.Body = ioutil.NopCloser(bytes.NewReader(responseBody))
+
+	hit := cache.Hit{
+		HitRequestID: parserRequest.ID,
+		Response: cache.Response{
+			Code:    httpResponse.StatusCode,
+			Headers: httpResponse.Header.Clone(),
+			Body:    responseBody,
+		},
+	}
+	return hit, nil
 }
