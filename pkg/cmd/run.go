@@ -103,21 +103,8 @@ func Run(ctx context.Context, args ...string) (err error) {
 		}
 	}()
 
-	cache := cache.GetDiskCache()
-	defer func() {
-		flushErr := cache.Flush()
-		if flushErr != nil {
-			if err != nil {
-				err = flushErr
-			} else {
-				// two errors, log the flush error and move on
-				log.Logger.Error("failed to flush cache:", zap.Error(err))
-			}
-		}
-	}()
-
 	executor, err := executorPkg.NewExecutor(&executorPkg.Opts{
-		Cache: cache,
+		Cache: dbCache,
 	})
 	if err != nil {
 		return fmt.Errorf("initialize executor: %v", err)
