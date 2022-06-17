@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/hbagdi/hit/pkg/model"
 	"github.com/tidwall/gjson"
 )
 
@@ -15,7 +16,7 @@ type DiskCache struct {
 	m map[string]interface{}
 }
 
-func Get() *DiskCache {
+func GetDiskCache() *DiskCache {
 	c := &DiskCache{}
 	if err := c.load(); err != nil {
 		panic(err)
@@ -70,7 +71,7 @@ func (c *DiskCache) load() error {
 	return nil
 }
 
-func (c *DiskCache) Save(hit Hit) error {
+func (c *DiskCache) Save(hit model.Hit) error {
 	contentType := hit.Response.Header.Get("content-type")
 	if !strings.Contains(contentType, "application/json") {
 		return nil

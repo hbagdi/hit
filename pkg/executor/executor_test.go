@@ -10,7 +10,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/hbagdi/hit/pkg/cache"
+	"github.com/hbagdi/hit/pkg/model"
 	"github.com/hbagdi/hit/pkg/parser"
 )
 
@@ -23,7 +23,7 @@ func Test_getHit(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		want    cache.Hit
+		want    model.Hit
 		wantErr bool
 	}{
 		{
@@ -46,11 +46,11 @@ func Test_getHit(t *testing.T) {
 					},
 				},
 			},
-			want: cache.Hit{
+			want: model.Hit{
 				ID:           0,
 				HitRequestID: "foo",
 				CreatedAt:    0,
-				Request: cache.Request{
+				Request: model.Request{
 					Method:      "GET",
 					Host:        "foo.com",
 					Path:        "/bar/baz",
@@ -59,15 +59,15 @@ func Test_getHit(t *testing.T) {
 						"foo-headr": {"foo-value"},
 					},
 				},
-				Response: cache.Response{
+				Response: model.Response{
 					Code: 201,
 					Header: map[string][]string{
 						"resp-foo": {"resp-foo-value"},
 					},
 					Body: nil,
 				},
-				Latency: cache.Latency{},
-				Network: cache.Network{},
+				Latency: model.Latency{},
+				Network: model.Network{},
 			},
 			wantErr: false,
 		},
@@ -93,11 +93,11 @@ func Test_getHit(t *testing.T) {
 					Body: readCloserFromString(`{"s":"foobar"}`),
 				},
 			},
-			want: cache.Hit{
+			want: model.Hit{
 				ID:           0,
 				HitRequestID: "foo",
 				CreatedAt:    0,
-				Request: cache.Request{
+				Request: model.Request{
 					Method:      "GET",
 					Host:        "foo.com",
 					Path:        "/bar/baz",
@@ -107,15 +107,15 @@ func Test_getHit(t *testing.T) {
 					},
 					Body: []byte("foobar"),
 				},
-				Response: cache.Response{
+				Response: model.Response{
 					Code: 201,
 					Header: map[string][]string{
 						"resp-foo": {"resp-foo-value"},
 					},
 					Body: []byte(`{"s":"foobar"}`),
 				},
-				Latency: cache.Latency{},
-				Network: cache.Network{},
+				Latency: model.Latency{},
+				Network: model.Network{},
 			},
 			wantErr: false,
 		},

@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/hbagdi/hit/pkg/cache"
+	"github.com/hbagdi/hit/pkg/model"
 	"github.com/hbagdi/hit/pkg/parser"
 	"github.com/hbagdi/hit/pkg/request"
 )
@@ -232,19 +233,19 @@ func readBody(r io.ReadCloser) ([]byte, error) {
 	return content, nil
 }
 
-func getHit(parserRequest parser.Request, httpRequest *http.Request, httpResponse *http.Response) (cache.Hit, error) {
+func getHit(parserRequest parser.Request, httpRequest *http.Request, httpResponse *http.Response) (model.Hit, error) {
 	requestBody, err := readBody(httpRequest.Body)
 	if err != nil {
-		return cache.Hit{}, err
+		return model.Hit{}, err
 	}
 	responseBody, err := readBody(httpResponse.Body)
 	if err != nil {
-		return cache.Hit{}, err
+		return model.Hit{}, err
 	}
 
-	return cache.Hit{
+	return model.Hit{
 		HitRequestID: parserRequest.ID,
-		Request: cache.Request{
+		Request: model.Request{
 			Method:      httpRequest.Method,
 			Host:        httpRequest.URL.Host,
 			QueryString: httpRequest.URL.RawQuery,
@@ -252,7 +253,7 @@ func getHit(parserRequest parser.Request, httpRequest *http.Request, httpRespons
 			Header:      httpRequest.Header,
 			Body:        requestBody,
 		},
-		Response: cache.Response{
+		Response: model.Response{
 			Code:   httpResponse.StatusCode,
 			Header: httpResponse.Header,
 			Body:   responseBody,

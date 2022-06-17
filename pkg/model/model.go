@@ -1,4 +1,4 @@
-package cache
+package model
 
 import "net/http"
 

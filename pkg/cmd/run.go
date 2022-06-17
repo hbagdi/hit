@@ -90,7 +90,7 @@ func Run(ctx context.Context, args ...string) (err error) {
 		}
 	}()
 
-	cache := cache.Get()
+	cache := cache.GetDiskCache()
 	defer func() {
 		flushErr := cache.Flush()
 		if flushErr != nil {

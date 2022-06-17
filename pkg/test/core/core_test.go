@@ -14,7 +14,7 @@ import (
 	"github.com/tidwall/gjson"
 )
 
-var c = cache.Get()
+var c = cache.GetDiskCache()
 
 func TestMain(m *testing.M) {
 	var code int
