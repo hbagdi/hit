@@ -50,21 +50,20 @@ func checkForUpdate() (string, error) {
 	return parseVersionFromResponseOrFile(js)
 }
 
+type data struct {
+	Errored bool   `json:"errored"`
+	Version string `json:"version"`
+}
+
 func parseVersionFromResponseOrFile(js []byte) (string, error) {
-	var m map[string]interface{}
-	if err := json.Unmarshal(js, &m); err != nil {
+	var d data
+	if err := json.Unmarshal(js, &d); err != nil {
 		return "", err
 	}
-	v, ok := m["version"]
-	if !ok {
-		return "", fmt.Errorf("no 'version' field in the response")
+	if d.Errored {
+		return "", fmt.Errorf("no version in cache")
 	}
-	version, ok := v.(string)
-	if !ok {
-		return "", fmt.Errorf("expected 'version' field to be a string, "+
-			"but got %T", v)
-	}
-	return version, nil
+	return d.Version, nil
 }
 
 var versionCacheFullPath string
@@ -109,21 +108,19 @@ func loadVersionFromCache() (string, error) {
 
 func refreshVersionCache() (string, error) {
 	version, err := checkForUpdate()
-	if err != nil {
-		return "", err
+	updateCacheErr := updateCache(version, err != nil)
+	if updateCacheErr != nil {
+		log.Logger.Debug("version-check: failed to update version cache",
+			zap.Error(updateCacheErr))
 	}
-	err = updateCache(version)
-	if err != nil {
-		log.Logger.Debug("version-check: failed to update version cache", zap.Error(err))
-	}
-
-	return version, nil
+	return version, err
 }
 
-func updateCache(version string) error {
+func updateCache(version string, errored bool) error {
 	const fileMode = 0o0600
-	js, err := json.Marshal(map[string]string{
+	js, err := json.Marshal(map[string]interface{}{
 		"version": version,
+		"errored": errored,
 	})
 	if err != nil {
 		return err
