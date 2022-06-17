@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -150,15 +151,23 @@ func (e *Executor) Execute(ctx context.Context, req *Request) (*http.Response, e
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	httpRequest = httpRequest.WithContext(ctx)
+
+	clonedRequest, err := cloneHTTPRequest(httpRequest) //nolint:contextcheck
+	if err != nil {
+		return nil, err
+	}
+
 	resp, err := http.DefaultClient.Do(httpRequest)
 	if err != nil {
 		return nil, fmt.Errorf("do request: %v", err)
 	}
 
-	// save cached response
-	// TODO(hbagdi): does this clone the body? Doesn't seem like it
+	clonedResponse, err := cloneHTTPResponse(resp)
+	if err != nil {
+		return nil, err
+	}
 
-	hit, err := getHit(req.parserRequest, req.HTTPRequest, resp)
+	hit, err := getHit(req.parserRequest, clonedRequest, clonedResponse)
 	if err != nil {
 		return nil, fmt.Errorf("render hit: %v", err)
 	}
@@ -166,6 +175,7 @@ func (e *Executor) Execute(ctx context.Context, req *Request) (*http.Response, e
 	if err != nil {
 		return nil, fmt.Errorf("save response: %v", err)
 	}
+
 	return resp, nil
 }
 
@@ -179,20 +189,94 @@ func (e *Executor) AllRequestIDs() ([]string, error) {
 	return requestIDs, nil
 }
 
-func getHit(parserRequest parser.Request, _ *http.Request, httpResponse *http.Response) (cache.Hit, error) {
-	responseBody, err := ioutil.ReadAll(httpResponse.Body)
+const cloneCount = 2
+
+func cloneHTTPResponse(resp *http.Response) (*http.Response, error) {
+	bodies, err := cloneReadCloser(resp.Body, cloneCount)
+	if err != nil {
+		return nil, fmt.Errorf("clone response body: %v", err)
+	}
+	// restore the original body
+	resp.Body = bodies[0]
+
+	// clone the response
+
+	clonedResponse := *resp
+	clonedResponse.Body = bodies[1]
+
+	return &clonedResponse, nil
+}
+
+func cloneHTTPRequest(req *http.Request) (*http.Request, error) {
+	bodies, err := cloneReadCloser(req.Body, cloneCount)
+	if err != nil {
+		return nil, fmt.Errorf("clone request body: %v", err)
+	}
+	// restore the original body
+	req.Body = bodies[0]
+
+	// clone the response
+	clonedRequest := req.Clone(context.Background())
+	clonedRequest.Body = bodies[1]
+	return clonedRequest, nil
+}
+
+func readBody(r io.ReadCloser) ([]byte, error) {
+	if r == nil {
+		return nil, nil
+	}
+	content, err := ioutil.ReadAll(r)
+	if err != nil {
+		return nil, err
+	}
+	return content, nil
+}
+
+func getHit(parserRequest parser.Request, httpRequest *http.Request, httpResponse *http.Response) (cache.Hit, error) {
+	requestBody, err := readBody(httpRequest.Body)
 	if err != nil {
 		return cache.Hit{}, err
 	}
-	httpResponse.Body = ioutil.NopCloser(bytes.NewReader(responseBody))
-
-	hit := cache.Hit{
-		HitRequestID: parserRequest.ID,
-		Response: cache.Response{
-			Code:    httpResponse.StatusCode,
-			Headers: httpResponse.Header.Clone(),
-			Body:    responseBody,
-		},
+	responseBody, err := readBody(httpResponse.Body)
+	if err != nil {
+		return cache.Hit{}, err
 	}
-	return hit, nil
+
+	return cache.Hit{
+		HitRequestID: parserRequest.ID,
+		Request: cache.Request{
+			Method:      httpRequest.Method,
+			Host:        httpRequest.URL.Host,
+			QueryString: httpRequest.URL.RawQuery,
+			Path:        httpRequest.URL.Path,
+			Header:      httpRequest.Header,
+			Body:        requestBody,
+		},
+		Response: cache.Response{
+			Code:   httpResponse.StatusCode,
+			Header: httpResponse.Header,
+			Body:   responseBody,
+		},
+	}, nil
+}
+
+func cloneReadCloser(r io.ReadCloser, count int) ([]io.ReadCloser, error) {
+	if count < 1 {
+		panic("count < 1")
+	}
+	if r == nil {
+		res := make([]io.ReadCloser, count)
+		for i := 0; i < count; i++ {
+			res[i] = nil
+		}
+	}
+	content, err := ioutil.ReadAll(r)
+	if err != nil {
+		return nil, fmt.Errorf("read all: %w", err)
+	}
+	var res []io.ReadCloser
+	for i := 0; i < count; i++ {
+		res = append(res, ioutil.NopCloser(bytes.NewReader(content)))
+	}
+	return res, nil
 }

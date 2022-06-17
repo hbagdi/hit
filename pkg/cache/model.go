@@ -10,8 +10,10 @@ type Hit struct {
 	// RequestError  RequestError
 	// ResponseError ResponseError
 	Response Response
-	Latency  Latency
-	Network  Network
+	// Latency is NYI.
+	Latency Latency
+	// Network is NYI.
+	Network Network
 }
 
 // type RequestError struct {
@@ -27,14 +29,14 @@ type Request struct {
 	Host        string
 	Path        string
 	QueryString string
-	Headers     http.Header
+	Header      http.Header
 	Body        []byte
 }
 
 type Response struct {
-	Code    int
-	Headers http.Header
-	Body    []byte
+	Code   int
+	Header http.Header
+	Body   []byte
 }
 
 type Latency struct {

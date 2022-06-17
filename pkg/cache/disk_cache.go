@@ -71,7 +71,7 @@ func (c *DiskCache) load() error {
 }
 
 func (c *DiskCache) Save(hit Hit) error {
-	contentType := hit.Response.Headers.Get("content-type")
+	contentType := hit.Response.Header.Get("content-type")
 	if !strings.Contains(contentType, "application/json") {
 		return nil
 	}
