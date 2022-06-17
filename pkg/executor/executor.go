@@ -154,7 +154,10 @@ func (e *Executor) Execute(ctx context.Context, req *Request) (*http.Response, e
 	}
 
 	// save cached response
-	err = e.cache.Save(req.parserRequest, resp)
+	// TODO(hbagdi): does this clone the body? Doesn't seem like it
+
+	clonedRequest := req.HTTPRequest.Clone(context.Background())
+	err = e.cache.Save(*clonedRequest, resp)
 	if err != nil {
 		return nil, fmt.Errorf("save response: %v", err)
 	}

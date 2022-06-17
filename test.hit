@@ -1,5 +1,5 @@
 @_global
-base_url=https://nodes.yolo42.com
+base_url=http://localhost:7090
 version=1
 
 
