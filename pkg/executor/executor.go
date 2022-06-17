@@ -247,7 +247,7 @@ func getHit(parserRequest parser.Request, httpRequest *http.Request, httpRespons
 		HitRequestID: parserRequest.ID,
 		Request: model.Request{
 			Method:      httpRequest.Method,
-			Host:        httpRequest.URL.Host,
+			Host:        httpRequest.URL.Hostname(),
 			QueryString: httpRequest.URL.RawQuery,
 			Path:        httpRequest.URL.Path,
 			Header:      httpRequest.Header,

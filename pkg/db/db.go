@@ -1,10 +1,13 @@
 package db
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"path/filepath"
+	"time"
 
+	"github.com/hbagdi/hit/pkg/model"
 	"github.com/hbagdi/hit/pkg/util"
 	_ "github.com/mattn/go-sqlite3" // sqlite driver
 	"go.uber.org/zap"
@@ -13,6 +16,79 @@ import (
 type Store struct {
 	db     *sql.DB
 	logger *zap.Logger
+}
+
+const loadLatestQuery = `select 
+hit_request_id,
+created_at,
+http_request_method,
+http_request_host,
+http_request_path,
+http_request_query_string,
+http_request_body,
+http_response_code,
+http_response_body
+from hits
+where hit_request_id=@hitRequestID
+order by created_at desc limit 1;`
+
+func (s *Store) LoadLatestHitForID(ctx context.Context, hitRequestID string) (model.Hit, error) {
+	rows := s.db.QueryRowContext(ctx, loadLatestQuery,
+		sql.Named("hitRequestID", hitRequestID),
+	)
+	if err := rows.Err(); err != nil {
+		return model.Hit{}, err
+	}
+	var hit model.Hit
+	err := rows.Scan(&hit.HitRequestID, &hit.CreatedAt, &hit.Request.Method,
+		&hit.Request.Host, &hit.Request.Path, &hit.Request.QueryString,
+		&hit.Request.Body, &hit.Response.Code, &hit.Response.Body)
+	if err != nil {
+		return model.Hit{}, err
+	}
+	return hit, nil
+}
+
+const saveQuery = `insert into hits(
+hit_request_id,
+created_at,
+http_request_method,
+http_request_host,
+http_request_path,
+http_request_query_string,
+http_request_body,
+http_response_code,
+http_response_body
+)
+values(
+@hitRequestID,
+@createdAt,
+@httpRequestMethod,
+@httpRequestHost,
+@httpRequestPath,
+@httpRequestQueryString,
+@httpRequestBody,
+@httpResponseCode,
+@httpResponseBody
+);`
+
+func (s *Store) Save(ctx context.Context, hit model.Hit) error {
+	_, err := s.db.ExecContext(ctx, saveQuery,
+		sql.Named("hitRequestID", hit.HitRequestID),
+		sql.Named("createdAt", time.Now().Unix()),
+		sql.Named("httpRequestMethod", hit.Request.Method),
+		sql.Named("httpRequestHost", hit.Request.Host),
+		sql.Named("httpRequestPath", hit.Request.Path),
+		sql.Named("httpRequestQueryString", hit.Request.QueryString),
+		sql.Named("httpRequestBody", hit.Request.Body),
+		sql.Named("httpResponseCode", hit.Response.Code),
+		sql.Named("httpResponseBody", hit.Response.Body),
+	)
+	if err != nil {
+		return fmt.Errorf("execute sql: %v", err)
+	}
+
+	return nil
 }
 
 func (s *Store) Close() error {
@@ -53,7 +129,7 @@ func NewStore(opts StoreOpts) (*Store, error) {
 	}
 	err = migrate(db)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("ensure migrations up to date: %v", err)
 	}
 	return &Store{
 		db:     db,

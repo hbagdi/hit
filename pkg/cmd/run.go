@@ -90,6 +90,19 @@ func Run(ctx context.Context, args ...string) (err error) {
 		}
 	}()
 
+	dbCache := cache.GetDBCache(store)
+	defer func() {
+		flushErr := dbCache.Flush()
+		if flushErr != nil {
+			if err != nil {
+				err = flushErr
+			} else {
+				// two errors, log the flush error and move on
+				log.Logger.Error("failed to flush cache:", zap.Error(err))
+			}
+		}
+	}()
+
 	cache := cache.GetDiskCache()
 	defer func() {
 		flushErr := cache.Flush()

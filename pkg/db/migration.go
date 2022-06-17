@@ -43,6 +43,17 @@ func initSchemaMigration(sql *sql.DB) error {
 
 var migrations = []string{
 	`create table if not exists hits(id integer primary key);`,
+	`alter table hits add column hit_request_id text;`,
+	`alter table hits add column created_at integer;`,
+	`alter table hits add column http_request_method text;`,
+	`alter table hits add column http_request_host text;`,
+	`alter table hits add column http_request_path text;`,
+	`alter table hits add column http_request_query_string text;`,
+	`alter table hits add column http_request_headers text;`,
+	`alter table hits add column http_request_body text;`,
+	`alter table hits add column http_response_code integer;`,
+	`alter table hits add column http_response_headers text;`,
+	`alter table hits add column http_response_body text;`,
 }
 
 func doMigrate(db *sql.DB, migrations []string) error {
@@ -64,7 +75,7 @@ func doMigrate(db *sql.DB, migrations []string) error {
 	for i := currentState; i < len(migrations); i++ {
 		_, err := tx.Exec(migrations[i])
 		if err != nil {
-			return err
+			return fmt.Errorf("migration(%d): %v", i, err)
 		}
 	}
 	err = updateCurrentState(tx, len(migrations))
