@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"path/filepath"
 
-	cachePkg "github.com/hbagdi/hit/pkg/cache"
+	"github.com/hbagdi/hit/pkg/util"
 	_ "github.com/mattn/go-sqlite3" // sqlite driver
 	"go.uber.org/zap"
 )
@@ -30,7 +30,7 @@ var dbFilePath string
 
 func init() {
 	const dbFilename = "hit-requests.db"
-	cacheDir, err := cachePkg.HitCacheDir()
+	cacheDir, err := util.HitCacheDir()
 	if err != nil {
 		panic(fmt.Sprintf("failed to find cache dir: %v", err))
 	}

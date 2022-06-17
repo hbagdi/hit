@@ -11,8 +11,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/hbagdi/hit/pkg/cache"
 	"github.com/hbagdi/hit/pkg/log"
+	"github.com/hbagdi/hit/pkg/util"
 	"go.uber.org/zap"
 )
 
@@ -73,7 +73,7 @@ func versionCacheFileName() (string, error) {
 		return versionCacheFullPath, nil
 	}
 	const versionCacheFilename = "latest_version.json"
-	hitCacheDir, err := cache.HitCacheDir()
+	hitCacheDir, err := util.HitCacheDir()
 	if err != nil {
 		return "", err
 	}

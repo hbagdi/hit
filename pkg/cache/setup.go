@@ -5,42 +5,27 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"github.com/hbagdi/hit/pkg/util"
 )
 
 const (
-	cacheDir  = "hit"
 	cacheFile = "cache.json"
 	fileMode  = 0o0600
 )
 
 var cacheFilePath string
 
-func getUserCacheDir() (string, error) {
-	userCacheDir, err := os.UserCacheDir()
-	if err != nil {
-		return "", fmt.Errorf("failed to find user's cache directory: %w", err)
-	}
-	return userCacheDir, nil
-}
-
-func HitCacheDir() (string, error) {
-	userCacheDir, err := getUserCacheDir()
-	if err != nil {
-		return "", err
-	}
-	return filepath.Join(userCacheDir, cacheDir), nil
-}
-
 // init ensures that the cache files are correctly setup.
 func init() {
-	userCacheDir, err := getUserCacheDir()
+	userCacheDir, err := util.GetUserCacheDir()
 	if err != nil {
 		panic(fmt.Sprintf("failed to find cache directory: %v", err))
 	}
 	if err = ensureDir(userCacheDir, os.ModePerm); err != nil {
 		panic(err)
 	}
-	hitCacheDir, err := HitCacheDir()
+	hitCacheDir, err := util.HitCacheDir()
 	if err != nil {
 		panic(err)
 	}
