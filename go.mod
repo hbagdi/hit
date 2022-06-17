@@ -7,6 +7,7 @@ require (
 	github.com/fatih/color v1.13.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/hokaccha/go-prettyjson v0.0.0-20211117102719-0474bc63780f
+	github.com/mattn/go-sqlite3 v1.14.13
 	github.com/stretchr/testify v1.7.2
 	github.com/tidwall/gjson v1.14.1
 	go.uber.org/zap v1.21.0

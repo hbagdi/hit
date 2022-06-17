@@ -8,6 +8,7 @@ import (
 
 	"github.com/blang/semver/v4"
 	"github.com/hbagdi/hit/pkg/cache"
+	"github.com/hbagdi/hit/pkg/db"
 	executorPkg "github.com/hbagdi/hit/pkg/executor"
 	"github.com/hbagdi/hit/pkg/log"
 	"github.com/hbagdi/hit/pkg/version"
@@ -58,6 +59,7 @@ func Run(ctx context.Context, args ...string) (err error) {
 	defer func() {
 		_ = log.Logger.Sync()
 	}()
+
 	log.Logger.Debug("starting run cmd")
 	if len(args) < minArgs {
 		return fmt.Errorf("need a request to execute")
@@ -76,6 +78,17 @@ func Run(ctx context.Context, args ...string) (err error) {
 		return fmt.Errorf("request must begin with '@' character")
 	}
 	id = id[1:]
+
+	store, err := db.NewStore(db.StoreOpts{Logger: log.Logger})
+	if err != nil {
+		return err
+	}
+	defer func() {
+		err := store.Close()
+		if err != nil {
+			log.Logger.Sugar().Errorf("failed to close store: %v", err)
+		}
+	}()
 
 	cache := cache.Get()
 	defer func() {
