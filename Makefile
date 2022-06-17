@@ -1,4 +1,4 @@
-test: lint
+test:
 	go test -race ./...
 
 lint:
