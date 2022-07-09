@@ -62,12 +62,28 @@ func (e *Executor) LoadFiles() error {
 	return nil
 }
 
+func validateGlobal(g parser.Global) error {
+	if g.Version != 0 && g.Version != 1 {
+		return fmt.Errorf("invalid hit file version '%v'", g.Version)
+	}
+	if g.BaseURL != "" {
+		u, err := url.Parse(g.BaseURL)
+		if err != nil {
+			return fmt.Errorf("invalid base_url '%v': %v", g.BaseURL, err)
+		}
+		if u.Scheme != "http" && u.Scheme != "https" {
+			return fmt.Errorf("invalid scheme '%v': only 'http' "+
+				"or 'https' is supported", u.Scheme)
+		}
+	}
+	return nil
+}
+
 func fetchGlobal(files []parser.File) (parser.Global, error) {
 	var res parser.Global
 	for _, file := range files {
-		if file.Global.Version != 0 && file.Global.Version != 1 {
-			return parser.Global{},
-				fmt.Errorf("invalid hit file version '%v'", file.Global.Version)
+		if err := validateGlobal(file.Global); err != nil {
+			return parser.Global{}, err
 		}
 		if file.Global.Version == 1 {
 			res.Version = 1
@@ -81,10 +97,6 @@ func fetchGlobal(files []parser.File) (parser.Global, error) {
 	}
 	if res.BaseURL == "" {
 		return parser.Global{}, fmt.Errorf("no global.base_url provided")
-	}
-	if _, err := url.Parse(res.BaseURL); err != nil {
-		return parser.Global{},
-			fmt.Errorf("invalid base_url '%v': %v", res.BaseURL, err)
 	}
 	return res, nil
 }
