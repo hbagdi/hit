@@ -65,3 +65,7 @@ bool-true: true
 bool-false: false
 num: 42
 num-float: 42.42
+
+@redirect
+GET
+/status/302
