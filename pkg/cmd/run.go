@@ -73,6 +73,8 @@ func Run(ctx context.Context, args ...string) (err error) {
 		return completion()
 	case id == "version":
 		return executeVersion()
+	case id == "browse":
+		return executeBrowse()
 	case id[0] == '@':
 	default:
 		return fmt.Errorf("request must begin with '@' character")
