@@ -260,6 +260,18 @@ func TestBasic(t *testing.T) {
 		input := js.Get("json.input").Bool()
 		require.Equal(t, false, input)
 	})
+	t.Run("redirects are not followed", func(t *testing.T) {
+		req, err := e.BuildRequest("redirect", &executor.RequestOpts{
+			Params: []string{"hit-test", "@req"},
+		})
+		require.Nil(t, err)
+		require.Equal(t, "https://httpbin.org/status/302",
+			req.HTTPRequest.URL.String())
+		res, err := e.Execute(context.Background(), req)
+		require.Nil(t, err)
+		require.Equal(t, http.StatusFound, res.StatusCode)
+		require.Equal(t, res.Header.Get("location"), "/redirect/1")
+	})
 }
 
 func gjsonBody(t *testing.T, res *http.Response) gjson.Result {

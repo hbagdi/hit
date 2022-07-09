@@ -20,9 +20,10 @@ import (
 const timeout = 10 * time.Second
 
 type Executor struct {
-	files  []parser.File
-	global parser.Global
-	cache  cache.Cache
+	files      []parser.File
+	global     parser.Global
+	cache      cache.Cache
+	httpClient *http.Client
 }
 
 type Opts struct {
@@ -30,7 +31,15 @@ type Opts struct {
 }
 
 func NewExecutor(opts *Opts) (*Executor, error) {
-	e := &Executor{}
+	client := &http.Client{
+		CheckRedirect: func(_ *http.Request, _ []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}
+
+	e := &Executor{
+		httpClient: client,
+	}
 	if opts != nil {
 		e.cache = opts.Cache
 	}
@@ -158,7 +167,7 @@ func (e *Executor) Execute(ctx context.Context, req *Request) (*http.Response, e
 		return nil, err
 	}
 
-	resp, err := http.DefaultClient.Do(httpRequest)
+	resp, err := e.httpClient.Do(httpRequest)
 	if err != nil {
 		return nil, fmt.Errorf("do request: %v", err)
 	}
