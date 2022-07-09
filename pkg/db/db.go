@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"path/filepath"
 	"time"
 
@@ -111,6 +112,71 @@ func (s *Store) Save(ctx context.Context, hit model.Hit) error {
 	}
 
 	return nil
+}
+
+type PageOpts struct{}
+
+const listQuery = `select 
+hit_request_id,
+created_at,
+http_request_method,
+http_request_host,
+http_request_path,
+http_request_query_string,
+http_request_headers,
+http_request_body,
+http_response_code,
+http_response_status,
+http_response_headers,
+http_response_body
+from hits
+order by created_at desc limit 1000;`
+
+func (s *Store) List(ctx context.Context, opts PageOpts) ([]model.Hit, error) {
+	rows, err := s.db.QueryContext(ctx, listQuery)
+	if err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	var res []model.Hit
+	for rows.Next() {
+		var (
+			hit                   model.Hit
+			requestHeadersAsJSON  sql.NullString
+			requestHeaders        http.Header
+			responseHeadersAsJSON sql.NullString
+			responseHeaders       http.Header
+		)
+		err := rows.Scan(&hit.HitRequestID, &hit.CreatedAt, &hit.Request.Method,
+			&hit.Request.Host, &hit.Request.Path, &hit.Request.QueryString,
+			&requestHeadersAsJSON, &hit.Request.Body,
+			&hit.Response.Code, &hit.Response.Status,
+			&responseHeadersAsJSON, &hit.Response.Body)
+		if err != nil {
+			return nil, err
+		}
+		if requestHeadersAsJSON.Valid {
+			err = json.Unmarshal([]byte(requestHeadersAsJSON.String), &requestHeaders)
+			if err != nil {
+				return nil, fmt.Errorf(
+					"unmarshal request HTTP headers from JSON: %v", err)
+			}
+			hit.Request.Header = requestHeaders
+		}
+		if responseHeadersAsJSON.Valid {
+			err = json.Unmarshal([]byte(responseHeadersAsJSON.String), &responseHeaders)
+			if err != nil {
+				return nil, fmt.Errorf("unmarshal response HTTP headers from"+
+					" JSON: %v", err)
+			}
+			hit.Response.Header = responseHeaders
+		}
+
+		res = append(res, hit)
+	}
+	return res, nil
 }
 
 func (s *Store) Close() error {
