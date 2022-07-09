@@ -1,23 +1,21 @@
-package cache
+package util
 
 import (
 	"errors"
 	"fmt"
 	"os"
-
-	"github.com/hbagdi/hit/pkg/util"
 )
 
-// init ensures that the cache files are correctly setup.
-func init() {
-	userCacheDir, err := util.GetUserCacheDir()
+// EnsureCacheDirs ensures that the cache files are correctly setup.
+func EnsureCacheDirs() {
+	userCacheDir, err := GetUserCacheDir()
 	if err != nil {
 		panic(fmt.Sprintf("failed to find cache directory: %v", err))
 	}
 	if err = ensureDir(userCacheDir, os.ModePerm); err != nil {
 		panic(err)
 	}
-	hitCacheDir, err := util.HitCacheDir()
+	hitCacheDir, err := HitCacheDir()
 	if err != nil {
 		panic(err)
 	}
