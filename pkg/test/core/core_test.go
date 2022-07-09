@@ -190,6 +190,14 @@ func TestBasic(t *testing.T) {
 		require.Equal(t, "request 'get-does-not-exist' not found", err.Error())
 		require.Nil(t, req)
 	})
+	t.Run("no input from CLI returns an error", func(t *testing.T) {
+		req, err := e.BuildRequest("cli-arg-types", &executor.RequestOpts{
+			Params: []string{"hit-test", "@req"},
+		})
+		require.Nil(t, req)
+		require.ErrorContains(t, err,
+			"expected command-line input for the request")
+	})
 	t.Run("string input via CLI is injected", func(t *testing.T) {
 		req, err := e.BuildRequest("cli-arg-types", &executor.RequestOpts{
 			Params: []string{"hit-test", "@req", "foobar"},

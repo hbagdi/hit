@@ -1,7 +1,7 @@
 package request
 
 import (
-	"os"
+	"fmt"
 	"strconv"
 
 	"github.com/hbagdi/hit/pkg/cache"
@@ -26,7 +26,11 @@ type cacheResolver struct {
 func (r cacheResolver) Resolve(key string) (interface{}, error) {
 	key = key[1:]
 	n, err := strconv.Atoi(key)
-	if err == nil && n < len(os.Args) {
+	if err == nil {
+		// referenced key is a number
+		if n >= len(r.args) {
+			return nil, fmt.Errorf("expected command-line input for the request")
+		}
 		v := r.args[n]
 		if v[0] != '@' {
 			return typedValue(v), nil
