@@ -13,6 +13,10 @@ import (
 	"go.uber.org/zap"
 )
 
+func init() {
+	util.EnsureCacheDirs()
+}
+
 type Store struct {
 	db     *sql.DB
 	logger *zap.Logger
