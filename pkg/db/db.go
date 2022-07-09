@@ -64,6 +64,7 @@ http_request_query_string,
 http_request_headers,
 http_request_body,
 http_response_code,
+http_response_status,
 http_response_headers,
 http_response_body
 )
@@ -77,6 +78,7 @@ values(
 @httpRequestHeaders,
 @httpRequestBody,
 @httpResponseCode,
+@httpResponseStatus,
 @httpResponseHeaders,
 @httpResponseBody
 );`
@@ -100,6 +102,7 @@ func (s *Store) Save(ctx context.Context, hit model.Hit) error {
 		sql.Named("httpRequestHeaders", string(requestHeaders)),
 		sql.Named("httpRequestBody", hit.Request.Body),
 		sql.Named("httpResponseCode", hit.Response.Code),
+		sql.Named("httpResponseStatus", hit.Response.Status),
 		sql.Named("httpResponseHeaders", string(responseHeaders)),
 		sql.Named("httpResponseBody", hit.Response.Body),
 	)

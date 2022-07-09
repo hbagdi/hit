@@ -276,6 +276,7 @@ func getHit(parserRequest parser.Request, httpRequest *http.Request, httpRespons
 		},
 		Response: model.Response{
 			Code:   httpResponse.StatusCode,
+			Status: httpResponse.Status,
 			Header: httpResponse.Header,
 			Body:   responseBody,
 		},

@@ -35,6 +35,7 @@ type Request struct {
 
 type Response struct {
 	Code   int
+	Status string
 	Header http.Header
 	Body   []byte
 }

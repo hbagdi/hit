@@ -54,6 +54,7 @@ var migrations = []string{
 	`alter table hits add column http_response_code integer;`,
 	`alter table hits add column http_response_headers text;`,
 	`alter table hits add column http_response_body text;`,
+	`alter table hits add column http_response_status text;`,
 }
 
 func doMigrate(db *sql.DB, migrations []string) error {
