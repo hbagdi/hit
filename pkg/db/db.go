@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"path/filepath"
 	"time"
@@ -60,8 +61,10 @@ http_request_method,
 http_request_host,
 http_request_path,
 http_request_query_string,
+http_request_headers,
 http_request_body,
 http_response_code,
+http_response_headers,
 http_response_body
 )
 values(
@@ -71,21 +74,33 @@ values(
 @httpRequestHost,
 @httpRequestPath,
 @httpRequestQueryString,
+@httpRequestHeaders,
 @httpRequestBody,
 @httpResponseCode,
+@httpResponseHeaders,
 @httpResponseBody
 );`
 
 func (s *Store) Save(ctx context.Context, hit model.Hit) error {
-	_, err := s.db.ExecContext(ctx, saveQuery,
+	requestHeaders, err := json.Marshal(hit.Request.Header)
+	if err != nil {
+		return fmt.Errorf("marshal HTTP headers into json: %v", err)
+	}
+	responseHeaders, err := json.Marshal(hit.Response.Header)
+	if err != nil {
+		return fmt.Errorf("marshal HTTP headers into json: %v", err)
+	}
+	_, err = s.db.ExecContext(ctx, saveQuery,
 		sql.Named("hitRequestID", hit.HitRequestID),
 		sql.Named("createdAt", time.Now().Unix()),
 		sql.Named("httpRequestMethod", hit.Request.Method),
 		sql.Named("httpRequestHost", hit.Request.Host),
 		sql.Named("httpRequestPath", hit.Request.Path),
 		sql.Named("httpRequestQueryString", hit.Request.QueryString),
+		sql.Named("httpRequestHeaders", string(requestHeaders)),
 		sql.Named("httpRequestBody", hit.Request.Body),
 		sql.Named("httpResponseCode", hit.Response.Code),
+		sql.Named("httpResponseHeaders", string(responseHeaders)),
 		sql.Named("httpResponseBody", hit.Response.Body),
 	)
 	if err != nil {
