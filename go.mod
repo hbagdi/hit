@@ -10,7 +10,7 @@ require (
 	github.com/hokaccha/go-prettyjson v0.0.0-20211117102719-0474bc63780f
 	github.com/mattn/go-sqlite3 v1.14.13
 	github.com/rivo/tview v0.0.0-20220610163003-691f46d6f500
-	github.com/stretchr/testify v1.7.2
+	github.com/stretchr/testify v1.8.0
 	github.com/tidwall/gjson v1.14.1
 	go.uber.org/zap v1.21.0
 )
