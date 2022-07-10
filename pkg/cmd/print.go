@@ -6,13 +6,23 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 
 	"github.com/fatih/color"
 	"github.com/hokaccha/go-prettyjson"
 )
 
 func printRequest(r *http.Request) error {
-	fmt.Println(r.Method + " " + r.URL.Path + " " + r.Proto)
+	path := r.URL.Path
+	if r.URL.RawQuery != "" {
+		q, err := url.QueryUnescape(r.URL.RawQuery)
+		if err != nil {
+			return fmt.Errorf("unescape query params: %v", err)
+		}
+		path += "&" + q
+	}
+
+	fmt.Println(r.Method + " " + path + " " + r.Proto)
 	printHeaders(r.Header)
 	fmt.Println()
 	defer r.Body.Close()

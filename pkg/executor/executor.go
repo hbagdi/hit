@@ -264,12 +264,16 @@ func getHit(parserRequest parser.Request, httpRequest *http.Request, httpRespons
 		return model.Hit{}, err
 	}
 
+	qp, err := url.QueryUnescape(httpRequest.URL.RawQuery)
+	if err != nil {
+		return model.Hit{}, fmt.Errorf("unescape query params: %v", err)
+	}
 	return model.Hit{
 		HitRequestID: parserRequest.ID,
 		Request: model.Request{
 			Method:      httpRequest.Method,
 			Host:        httpRequest.URL.Hostname(),
-			QueryString: httpRequest.URL.RawQuery,
+			QueryString: qp,
 			Path:        httpRequest.URL.Path,
 			Header:      httpRequest.Header,
 			Body:        requestBody,
