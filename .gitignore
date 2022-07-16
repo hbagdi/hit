@@ -28,5 +28,4 @@ _testmain.go
 main
 hit
 .hit.cache
-dist
-
+out
