@@ -1,0 +1,41 @@
+name: Release
+on:
+  push:
+    tags:
+      - 'v*.*'
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup go
+        uses: actions/setup-go@v3
+        with:
+          go-version: '^1.18'
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: install-tools
+        run: ./scripts/install-tools.sh
+      - name: Get tag
+        id: tag
+        uses: dawidd6/action-get-tag@v1
+        with:
+          strip_v: true
+      - name: set commit
+        run:  echo "COMMIT=$(echo $GITHUB_SHA | cut -c 1-6)" >> $GITHUB_ENV
+      - name: set tag
+        run:  echo "VERSION=${{ steps.tag.outputs.tag }}" >> $GITHUB_ENV
+      - name: build
+        run: ./scripts/build/release.sh
+      - uses: actions/upload-artifact@v3
+        with:
+          name: release-artifacts
+          path: out/*.tar.gz
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: v${{ steps.tag.outputs.tag }}
+          tag_name: v${{ steps.tag.outputs.tag }}
+          draft: true
+          files: out/*.tar.gz
+          body: |
+            Changelog can be found on [hit.yolo42.com](https://hit.yolo42.com/docs/reference/changelog).
