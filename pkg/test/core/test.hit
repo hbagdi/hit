@@ -44,9 +44,9 @@ GET
 
 @cli-arg-types
 POST
-/anything/@2
+/anything/@1
 ~hy2j
-input: "@2"
+input: "@1"
 
 
 @post-with-static-body

@@ -12,15 +12,15 @@ title: root-node
 
 @get-node
 GET
-/v1/node/@2
+/v1/node/@1
 
 @create-node
 POST
 /v1/node
 ~hy2j
-title: "@2"
-parent_id: "@3"
+title: "@1"
+parent_id: "@2"
 
 @delete-node
 DELETE
-/v1/node/@2
+/v1/node/@1

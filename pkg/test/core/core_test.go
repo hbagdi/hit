@@ -192,7 +192,7 @@ func TestBasic(t *testing.T) {
 	})
 	t.Run("no input from CLI returns an error", func(t *testing.T) {
 		req, err := e.BuildRequest("cli-arg-types", &executor.RequestOpts{
-			Params: []string{"hit-test", "@req"},
+			Params: []string{"@req"},
 		})
 		require.Nil(t, req)
 		require.ErrorContains(t, err,
@@ -200,7 +200,7 @@ func TestBasic(t *testing.T) {
 	})
 	t.Run("string input via CLI is injected", func(t *testing.T) {
 		req, err := e.BuildRequest("cli-arg-types", &executor.RequestOpts{
-			Params: []string{"hit-test", "@req", "foobar"},
+			Params: []string{"@req", "foobar"},
 		})
 		require.Nil(t, err)
 		require.Equal(t, "https://httpbin.org/anything/foobar",
@@ -214,7 +214,7 @@ func TestBasic(t *testing.T) {
 	})
 	t.Run("number input via CLI is injected", func(t *testing.T) {
 		req, err := e.BuildRequest("cli-arg-types", &executor.RequestOpts{
-			Params: []string{"hit-test", "@req", "42"},
+			Params: []string{"@req", "42"},
 		})
 		require.Nil(t, err)
 		require.Equal(t, "https://httpbin.org/anything/42",
@@ -228,7 +228,7 @@ func TestBasic(t *testing.T) {
 	})
 	t.Run("float input via CLI is injected", func(t *testing.T) {
 		req, err := e.BuildRequest("cli-arg-types", &executor.RequestOpts{
-			Params: []string{"hit-test", "@req", "42.2442"},
+			Params: []string{"@req", "42.2442"},
 		})
 		require.Nil(t, err)
 		require.Equal(t, "https://httpbin.org/anything/42.2442",
@@ -242,7 +242,7 @@ func TestBasic(t *testing.T) {
 	})
 	t.Run("bool true input via CLI is injected", func(t *testing.T) {
 		req, err := e.BuildRequest("cli-arg-types", &executor.RequestOpts{
-			Params: []string{"hit-test", "@req", "true"},
+			Params: []string{"@req", "true"},
 		})
 		require.Nil(t, err)
 		require.Equal(t, "https://httpbin.org/anything/true",
@@ -256,7 +256,7 @@ func TestBasic(t *testing.T) {
 	})
 	t.Run("bool false input via CLI is injected", func(t *testing.T) {
 		req, err := e.BuildRequest("cli-arg-types", &executor.RequestOpts{
-			Params: []string{"hit-test", "@req", "false"},
+			Params: []string{"@req", "false"},
 		})
 		require.Nil(t, err)
 		require.Equal(t, "https://httpbin.org/anything/false",
@@ -270,7 +270,7 @@ func TestBasic(t *testing.T) {
 	})
 	t.Run("redirects are not followed", func(t *testing.T) {
 		req, err := e.BuildRequest("redirect", &executor.RequestOpts{
-			Params: []string{"hit-test", "@req"},
+			Params: []string{"@req"},
 		})
 		require.Nil(t, err)
 		require.Equal(t, "https://httpbin.org/status/302",
