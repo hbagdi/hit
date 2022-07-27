@@ -69,3 +69,8 @@ num-float: 42.42
 @redirect
 GET
 /status/302
+
+
+@bad-cli-arg
+POST
+/anything/@0
