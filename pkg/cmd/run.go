@@ -119,7 +119,7 @@ func Run(ctx context.Context, args ...string) (err error) {
 	}
 
 	req, err := executor.BuildRequest(id, &executorPkg.RequestOpts{
-		Params: args,
+		Params: args[1:],
 	})
 	if err != nil {
 		return fmt.Errorf("build request: %v", err)
