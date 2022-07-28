@@ -1,3 +1,6 @@
+
+all: lint test
+
 test:
 	go test -race ./...
 
