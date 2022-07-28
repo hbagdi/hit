@@ -29,7 +29,11 @@ func (r cacheResolver) Resolve(key string) (interface{}, error) {
 	if err == nil {
 		// referenced key is a number
 		if n >= len(r.args) {
-			return nil, fmt.Errorf("expected command-line input for the request")
+			return nil, fmt.Errorf(
+				"cannot find command-line argument number '@%d'", n)
+		}
+		if n == 0 {
+			return nil, fmt.Errorf("positional argument must be greater than 0")
 		}
 		v := r.args[n]
 		if v[0] != '@' {

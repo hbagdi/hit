@@ -196,7 +196,7 @@ func TestBasic(t *testing.T) {
 		})
 		require.Nil(t, req)
 		require.ErrorContains(t, err,
-			"expected command-line input for the request")
+			"cannot find command-line argument number '@1'")
 	})
 	t.Run("string input via CLI is injected", func(t *testing.T) {
 		req, err := e.BuildRequest("cli-arg-types", &executor.RequestOpts{
@@ -211,6 +211,15 @@ func TestBasic(t *testing.T) {
 		js := gjsonBody(t, res)
 		input := js.Get("json.input").String()
 		require.Equal(t, "foobar", input)
+	})
+	t.Run("referencing $0 errors", func(t *testing.T) {
+		req, err := e.BuildRequest("bad-cli-arg", &executor.RequestOpts{
+			Params: []string{"@req"},
+		})
+		require.Nil(t, req)
+		require.NotNil(t, err)
+		require.ErrorContains(t, err,
+			"positional argument must be greater than 0")
 	})
 	t.Run("number input via CLI is injected", func(t *testing.T) {
 		req, err := e.BuildRequest("cli-arg-types", &executor.RequestOpts{
