@@ -25,6 +25,9 @@ type cacheResolver struct {
 
 func (r cacheResolver) Resolve(key string) (interface{}, error) {
 	key = key[1:]
+	if len(key) == 0 {
+		return nil, fmt.Errorf("invalid reference '@'")
+	}
 	n, err := strconv.Atoi(key)
 	if err == nil {
 		// referenced key is a number
