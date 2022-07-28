@@ -78,3 +78,7 @@ POST
 @invalid-ref
 POST
 /anything/@
+
+@invalid-req-ref
+POST
+/anything/@redirect

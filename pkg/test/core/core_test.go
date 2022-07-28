@@ -230,6 +230,15 @@ func TestBasic(t *testing.T) {
 		require.ErrorContains(t, err,
 			"invalid reference '@'")
 	})
+	t.Run("referencing a request ID only errors (path required)", func(t *testing.T) {
+		req, err := e.BuildRequest("invalid-req-ref", &executor.RequestOpts{
+			Params: []string{"@req"},
+		})
+		require.Nil(t, req)
+		require.NotNil(t, err)
+		require.ErrorContains(t, err,
+			"invalid reference: '@redirect'")
+	})
 	t.Run("number input via CLI is injected", func(t *testing.T) {
 		req, err := e.BuildRequest("cli-arg-types", &executor.RequestOpts{
 			Params: []string{"@req", "42"},

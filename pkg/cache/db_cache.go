@@ -24,6 +24,9 @@ func GetDBCache(store *db.Store) *DBCache {
 func (c *DBCache) Get(key string) (interface{}, error) {
 	const splitN = 2
 	splits := strings.SplitN(key, ".", splitN)
+	if len(splits) != splitN {
+		return nil, fmt.Errorf("invalid reference: '@%s'", key)
+	}
 	id := splits[0]
 	path := splits[1]
 	hit, err := c.store.LoadLatestHitForID(context.Background(), id)
