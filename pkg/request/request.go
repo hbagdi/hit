@@ -38,7 +38,18 @@ func Generate(ctx context.Context, request parser.Request, opts Options) (*http.
 	if err != nil {
 		return nil, err
 	}
-	if cType == contentTypeInvalid {
+	headers := http.Header{}
+	if request.Headers != nil {
+		headers = http.Header(request.Headers).Clone()
+	}
+	headers.Add("user-agent", "hit/"+version.Version)
+
+	switch cType {
+	case contentTypeNone:
+	// no body, proceed as usual
+	case contentTypeJSON:
+		headers.Set("content-type", "application/json")
+	case contentTypeInvalid:
 		return nil, fmt.Errorf("invalid content-type")
 	}
 
@@ -47,16 +58,8 @@ func Generate(ctx context.Context, request parser.Request, opts Options) (*http.
 	if err != nil {
 		return nil, err
 	}
-	if request.Headers != nil {
-		httpReq.Header = request.Headers
-	}
-	switch cType {
-	case contentTypeJSON:
-		httpReq.Header.Set("content-type", "application/json")
-	default:
-		return nil, fmt.Errorf("invalid content-type")
-	}
-	httpReq.Header.Add("user-agent", "hit/"+version.Version)
+	httpReq.Header = headers
+
 	return httpReq, nil
 }
 
@@ -151,7 +154,8 @@ func getStringOrErr(value interface{}) (string, error) {
 type contentType int
 
 const (
-	contentTypeInvalid = iota
+	contentTypeNone = iota
+	contentTypeInvalid
 	contentTypeJSON
 )
 
@@ -159,6 +163,9 @@ func resolveBody(request parser.Request, resolver resolver) ([]byte, contentType
 	bodyS := strings.Join(request.Body, "\n")
 	var body []byte
 
+	if bodyS == "" {
+		return nil, contentTypeNone, nil
+	}
 	switch request.BodyEncoding {
 	case encodingY2J:
 		var i interface{}

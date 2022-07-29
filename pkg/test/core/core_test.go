@@ -68,6 +68,14 @@ func TestBasic(t *testing.T) {
 		require.Equal(t, false, body.Get("json.bool-false").Bool())
 		require.Equal(t, true, body.Get("json.bool-true").Bool())
 	})
+	t.Run("ensure that request with no body has no content-type header", func(t *testing.T) {
+		req, err := e.BuildRequest("get-headers", nil)
+		require.Nil(t, err)
+		require.NotNil(t, req)
+		require.Equal(t, "https://httpbin.org/headers",
+			req.HTTPRequest.URL.String())
+		require.Empty(t, req.HTTPRequest.Header.Get("content-type"))
+	})
 	t.Run("successfully performs a basic request", func(t *testing.T) {
 		req, err := e.BuildRequest("get-headers", nil)
 		require.Nil(t, err)
