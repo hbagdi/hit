@@ -40,8 +40,12 @@ func (b *browser) listHandler() {
 	i := hitsList.GetCurrentItem()
 	hit := b.hits[i]
 
-	fprintf(hitTextArea, "%s %s?%s\n", hit.Request.Method,
-		hit.Request.Path, hit.Request.QueryString)
+	requestLine := fmt.Sprintf("%s %s", hit.Request.Method, hit.Request.Path)
+	if hit.Request.QueryString != "" {
+		requestLine += fmt.Sprintf("?%s", hit.Request.QueryString)
+	}
+	requestLine += "\n"
+	fprintf(hitTextArea, "%s", requestLine)
 
 	prettyPrintHeaders(hitTextArea, hit.Request.Header)
 
