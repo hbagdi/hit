@@ -73,6 +73,7 @@ func TestBasic(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, req)
 		require.Equal(t, "https://httpbin.org/headers", req.URL())
+		require.Equal(t, "httpbin.org", req.Header.Get("host"))
 		require.Empty(t, req.Header.Get("content-type"))
 	})
 	t.Run("successfully performs a basic request", func(t *testing.T) {
@@ -315,6 +316,14 @@ func TestBasic(t *testing.T) {
 		require.Nil(t, err)
 		require.Equal(t, http.StatusFound, res.Response.Code)
 		require.Equal(t, res.Response.Header.Get("location"), "/redirect/1")
+	})
+	t.Run("an explicit host header is not overwritten", func(t *testing.T) {
+		id := "request-with-host-header"
+		req, err := e.BuildRequest(id, &executor.RequestOpts{
+			Params: []string{"@req"},
+		})
+		require.Nil(t, err)
+		require.Equal(t, "foo.com", req.Header.Get("host"))
 	})
 }
 
