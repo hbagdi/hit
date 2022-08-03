@@ -82,3 +82,8 @@ POST
 @invalid-req-ref
 POST
 /anything/@redirect
+
+@request-with-host-header
+POST
+/anything
+host:foo.com

@@ -38,10 +38,18 @@ func Generate(request parser.Request, opts Options) (model.Request, error) {
 		return model.Request{}, err
 	}
 	headers := http.Header{}
-	if request.Headers != nil {
-		headers = http.Header(request.Headers).Clone()
+	for key, values := range request.Headers {
+		for _, value := range values {
+			headers.Add(key, value)
+		}
 	}
 	headers.Add("user-agent", "hit/"+version.Version)
+
+	if headers.Get("host") == "" {
+		// TODO(hbagdi): attempt to clean host or error out if host is not
+		// valid
+		headers.Set("host", urlComponents.host)
+	}
 
 	switch cType {
 	case contentTypeNone:
