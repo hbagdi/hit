@@ -1,8 +1,6 @@
 package request
 
 import (
-	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -11,6 +9,7 @@ import (
 
 	"github.com/ghodss/yaml"
 	cachePkg "github.com/hbagdi/hit/pkg/cache"
+	"github.com/hbagdi/hit/pkg/model"
 	"github.com/hbagdi/hit/pkg/parser"
 	"github.com/hbagdi/hit/pkg/version"
 )
@@ -26,17 +25,17 @@ type Options struct {
 	Args          []string
 }
 
-func Generate(ctx context.Context, request parser.Request, opts Options) (*http.Request, error) {
+func Generate(request parser.Request, opts Options) (model.Request, error) {
 	resolver := newCacheResolver(opts.Cache, opts.Args)
 
-	u, err := genURL(request, opts.GlobalContext, resolver)
+	urlComponents, err := genURL(request, opts.GlobalContext, resolver)
 	if err != nil {
-		return nil, err
+		return model.Request{}, err
 	}
 
 	body, cType, err := resolveBody(request, resolver)
 	if err != nil {
-		return nil, err
+		return model.Request{}, err
 	}
 	headers := http.Header{}
 	if request.Headers != nil {
@@ -50,37 +49,45 @@ func Generate(ctx context.Context, request parser.Request, opts Options) (*http.
 	case contentTypeJSON:
 		headers.Set("content-type", "application/json")
 	case contentTypeInvalid:
-		return nil, fmt.Errorf("invalid content-type")
+		return model.Request{}, fmt.Errorf("invalid content-type")
 	}
 
-	httpReq, err := http.NewRequestWithContext(ctx, request.Method,
-		u.String(), bytes.NewReader(body))
-	if err != nil {
-		return nil, err
-	}
-	httpReq.Header = headers
-
-	return httpReq, nil
+	return model.Request{
+		Method:      request.Method,
+		Scheme:      urlComponents.scheme,
+		Host:        urlComponents.host,
+		Path:        urlComponents.path,
+		QueryString: urlComponents.query,
+		Header:      headers,
+		Body:        body,
+	}, nil
 }
 
-func genURL(request parser.Request, global parser.Global, resolver resolver) (*url.URL, error) {
+type urlComponents struct {
+	scheme, host, path, query string
+}
+
+func genURL(request parser.Request, global parser.Global, resolver resolver) (urlComponents, error) {
 	res, err := url.Parse(global.BaseURL + request.Path)
 	if err != nil {
-		return nil, err
+		return urlComponents{}, err
 	}
 
 	res.Path, err = resolvePath(res.Path, resolver)
 	if err != nil {
-		return nil, err
+		return urlComponents{}, err
 	}
 
 	resolvedQueryParams, err := resolveQueryParams(res.Query(), resolver)
 	if err != nil {
-		return nil, err
+		return urlComponents{}, err
 	}
-
-	res.RawQuery = resolvedQueryParams.Encode()
-	return res, err
+	return urlComponents{
+		scheme: res.Scheme,
+		host:   res.Host,
+		path:   res.EscapedPath(),
+		query:  resolvedQueryParams.Encode(),
+	}, nil
 }
 
 func resolvePath(path string, resolver resolver) (string, error) {

@@ -1,21 +1,20 @@
 package cmd
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 
 	"github.com/fatih/color"
+	"github.com/hbagdi/hit/pkg/model"
 	"github.com/hokaccha/go-prettyjson"
 )
 
-func printRequest(r *http.Request) error {
-	path := r.URL.Path
-	if r.URL.RawQuery != "" {
-		q, err := url.QueryUnescape(r.URL.RawQuery)
+func printRequest(r model.Request) error {
+	path := r.Path
+	if r.QueryString != "" {
+		q, err := url.QueryUnescape(r.QueryString)
 		if err != nil {
 			return fmt.Errorf("unescape query params: %v", err)
 		}
@@ -25,15 +24,8 @@ func printRequest(r *http.Request) error {
 	fmt.Println(r.Method + " " + path + " " + r.Proto)
 	printHeaders(r.Header)
 	fmt.Println()
-	defer r.Body.Close()
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		return err
-	}
-	r.Body = ioutil.NopCloser(bytes.NewBuffer(body))
 
-	err = printBody(body)
-	if err != nil {
+	if err := printBody(r.Body); err != nil {
 		return err
 	}
 	fmt.Println()
@@ -49,17 +41,18 @@ var (
 	magenta = color.New(color.FgMagenta)
 )
 
-func printResponse(resp *http.Response) error {
+func printResponse(resp model.Response) error {
 	fmt.Printf("%s ", resp.Proto)
+	code := resp.Code
 	var fn func(format string, a ...interface{}) (int, error)
 	switch {
-	case resp.StatusCode < 300: //nolint:gomnd
+	case code < 300: //nolint:gomnd
 		fn = green.Printf
-	case resp.StatusCode < 400: //nolint:gomnd
+	case code < 400: //nolint:gomnd
 		fn = yellow.Printf
-	case resp.StatusCode < 500: //nolint:gomnd
+	case code < 500: //nolint:gomnd
 		fn = magenta.Printf
-	case resp.StatusCode < 600: //nolint:gomnd
+	case code < 600: //nolint:gomnd
 		fn = red.Printf
 	default:
 		fn = white.Printf
@@ -70,14 +63,7 @@ func printResponse(resp *http.Response) error {
 
 	printHeaders(resp.Header)
 
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
-	resp.Body = ioutil.NopCloser(bytes.NewBuffer(body))
-
-	return printBody(body)
+	return printBody(resp.Body)
 }
 
 func isJSON(b []byte) bool {

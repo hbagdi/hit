@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -133,72 +132,96 @@ type RequestOpts struct {
 	Params []string
 }
 
-func (e *Executor) BuildRequest(id string, opts *RequestOpts) (*Request, error) {
+func (e *Executor) BuildRequest(id string, opts *RequestOpts) (model.Request, error) {
 	parserRequest, err := e.fetchRequest(id)
 	if err != nil {
-		return nil, err
+		return model.Request{}, err
 	}
 	if opts == nil {
 		opts = &RequestOpts{}
 	}
-	httpReq, err := request.Generate(context.Background(), parserRequest, request.Options{
+	request, err := request.Generate(parserRequest, request.Options{
 		GlobalContext: e.global,
 		Cache:         e.cache,
 		Args:          opts.Params,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to build request: %v", err)
+		return model.Request{}, fmt.Errorf("failed to build request: %v", err)
 	}
-	return &Request{
-		parserRequest: parserRequest,
-		HTTPRequest:   httpReq,
-	}, nil
+	return request, nil
 }
 
 func (e *Executor) Close() error {
 	return nil
 }
 
-type Request struct {
-	parserRequest parser.Request
-	HTTPRequest   *http.Request
-}
+func (e *Executor) Execute(ctx context.Context, requestID string, req model.Request) (model.Hit, error) {
+	var err error
 
-func (e *Executor) Execute(ctx context.Context, req *Request) (*http.Response, error) {
-	var (
-		err         error
-		httpRequest = req.HTTPRequest
-	)
-
+	httpRequest, err := httpRequestFromHitRequest(req)
+	if err != nil {
+		return model.Hit{}, err
+	}
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	httpRequest = httpRequest.WithContext(ctx)
 
-	clonedRequest, err := cloneHTTPRequest(httpRequest)
-	if err != nil {
-		return nil, err
-	}
-
 	resp, err := e.httpClient.Do(httpRequest)
 	if err != nil {
-		return nil, fmt.Errorf("do request: %v", err)
+		return model.Hit{}, fmt.Errorf("do request: %v", err)
+	}
+	updatedRequest := req
+	updatedRequest.Proto = httpRequest.Proto
+
+	hitResponse, err := hitResponseFromHitRequest(resp)
+	if err != nil {
+		return model.Hit{}, err
 	}
 
-	clonedResponse, err := cloneHTTPResponse(resp)
-	if err != nil {
-		return nil, err
+	hit := model.Hit{
+		HitRequestID: requestID,
+		Request:      updatedRequest,
+		Response:     hitResponse,
 	}
 
-	hit, err := getHit(req.parserRequest, clonedRequest, clonedResponse)
-	if err != nil {
-		return nil, fmt.Errorf("render hit: %v", err)
-	}
 	err = e.cache.Save(hit)
 	if err != nil {
-		return nil, fmt.Errorf("save response: %v", err)
+		return model.Hit{}, fmt.Errorf("save response: %v", err)
 	}
 
-	return resp, nil
+	return hit, nil
+}
+
+func httpRequestFromHitRequest(req model.Request) (*http.Request, error) {
+	body := bytes.NewReader(req.Body)
+
+	httpRequest, err := http.NewRequest(req.Method, req.URL(), body)
+	if err != nil {
+		return nil, fmt.Errorf("create HTTP request: %w", err)
+	}
+	for key, values := range req.Header {
+		if httpRequest.Header.Get(key) == "" {
+			for _, value := range values {
+				httpRequest.Header.Add(key, value)
+			}
+		}
+	}
+	return httpRequest, nil
+}
+
+func hitResponseFromHitRequest(resp *http.Response) (model.Response, error) {
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return model.Response{}, err
+	}
+
+	return model.Response{
+		Proto:  resp.Proto,
+		Code:   resp.StatusCode,
+		Status: resp.Status,
+		Header: resp.Header.Clone(),
+		Body:   body,
+	}, nil
 }
 
 func (e *Executor) AllRequestIDs() ([]string, error) {
@@ -209,101 +232,4 @@ func (e *Executor) AllRequestIDs() ([]string, error) {
 		}
 	}
 	return requestIDs, nil
-}
-
-const cloneCount = 2
-
-func cloneHTTPResponse(resp *http.Response) (*http.Response, error) {
-	bodies, err := cloneReadCloser(resp.Body, cloneCount)
-	if err != nil {
-		return nil, fmt.Errorf("clone response body: %v", err)
-	}
-	// restore the original body
-	resp.Body = bodies[0]
-
-	// clone the response
-
-	clonedResponse := *resp
-	clonedResponse.Body = bodies[1]
-
-	return &clonedResponse, nil
-}
-
-func cloneHTTPRequest(req *http.Request) (*http.Request, error) {
-	bodies, err := cloneReadCloser(req.Body, cloneCount)
-	if err != nil {
-		return nil, fmt.Errorf("clone request body: %v", err)
-	}
-	// restore the original body
-	req.Body = bodies[0]
-
-	// clone the response
-	clonedRequest := req.Clone(context.Background())
-	clonedRequest.Body = bodies[1]
-	return clonedRequest, nil
-}
-
-func readBody(r io.ReadCloser) ([]byte, error) {
-	if r == nil {
-		return nil, nil
-	}
-	content, err := ioutil.ReadAll(r)
-	if err != nil {
-		return nil, err
-	}
-	return content, nil
-}
-
-func getHit(parserRequest parser.Request, httpRequest *http.Request, httpResponse *http.Response) (model.Hit, error) {
-	requestBody, err := readBody(httpRequest.Body)
-	if err != nil {
-		return model.Hit{}, err
-	}
-	responseBody, err := readBody(httpResponse.Body)
-	if err != nil {
-		return model.Hit{}, err
-	}
-
-	qp, err := url.QueryUnescape(httpRequest.URL.RawQuery)
-	if err != nil {
-		return model.Hit{}, fmt.Errorf("unescape query params: %v", err)
-	}
-	return model.Hit{
-		HitRequestID: parserRequest.ID,
-		Request: model.Request{
-			Method:      httpRequest.Method,
-			Host:        httpRequest.URL.Hostname(),
-			QueryString: qp,
-			Path:        httpRequest.URL.Path,
-			Header:      httpRequest.Header,
-			Body:        requestBody,
-		},
-		Response: model.Response{
-			Code:   httpResponse.StatusCode,
-			Status: httpResponse.Status,
-			Header: httpResponse.Header,
-			Body:   responseBody,
-		},
-	}, nil
-}
-
-func cloneReadCloser(r io.ReadCloser, count int) ([]io.ReadCloser, error) {
-	if count < 1 {
-		panic("count < 1")
-	}
-	if r == nil {
-		res := make([]io.ReadCloser, count)
-		for i := 0; i < count; i++ {
-			res[i] = nil
-		}
-	}
-	content, err := ioutil.ReadAll(r)
-	if err != nil {
-		return nil, fmt.Errorf("read all: %w", err)
-	}
-	var res []io.ReadCloser
-	for i := 0; i < count; i++ {
-		res = append(res, ioutil.NopCloser(bytes.NewReader(content)))
-	}
-	return res, nil
 }

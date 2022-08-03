@@ -1,6 +1,9 @@
 package model
 
-import "net/http"
+import (
+	"net/http"
+	"net/url"
+)
 
 type Hit struct {
 	ID           int
@@ -25,6 +28,8 @@ type Hit struct {
 // }
 
 type Request struct {
+	Proto       string
+	Scheme      string
 	Method      string
 	Host        string
 	Path        string
@@ -33,7 +38,18 @@ type Request struct {
 	Body        []byte
 }
 
+func (r Request) URL() string {
+	url := url.URL{
+		Scheme:   r.Scheme,
+		Host:     r.Host,
+		Path:     r.Path,
+		RawQuery: r.QueryString,
+	}
+	return url.String()
+}
+
 type Response struct {
+	Proto  string
 	Code   int
 	Status string
 	Header http.Header

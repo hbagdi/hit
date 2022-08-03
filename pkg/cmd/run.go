@@ -125,17 +125,17 @@ func Run(ctx context.Context, args ...string) (err error) {
 		return fmt.Errorf("build request: %v", err)
 	}
 
-	err = printRequest(req.HTTPRequest)
+	err = printRequest(req)
 	if err != nil {
 		return fmt.Errorf("print request: %v", err)
 	}
 
-	resp, err := executor.Execute(ctx, req)
+	hit, err := executor.Execute(ctx, id, req)
 	if err != nil {
 		return fmt.Errorf("execute request: %v", err)
 	}
 
-	err = printResponse(resp)
+	err = printResponse(hit.Response)
 	if err != nil {
 		return err
 	}
