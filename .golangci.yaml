@@ -36,7 +36,6 @@ linters:
     - ifshort
     - importas
     - ineffassign
-    - ireturn
     - lll
     - makezero
     - misspell

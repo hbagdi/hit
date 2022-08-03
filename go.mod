@@ -7,7 +7,6 @@ require (
 	github.com/fatih/color v1.13.0
 	github.com/gdamore/tcell/v2 v2.4.1-0.20210905002822-f057f0a857a1
 	github.com/ghodss/yaml v1.0.0
-	github.com/hokaccha/go-prettyjson v0.0.0-20211117102719-0474bc63780f
 	github.com/mattn/go-sqlite3 v1.14.13
 	github.com/nwidger/jsoncolor v0.3.1
 	github.com/rivo/tview v0.0.0-20220610163003-691f46d6f500

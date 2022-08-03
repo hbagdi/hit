@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 	"sync"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/hbagdi/hit/pkg/db"
 	executorPkg "github.com/hbagdi/hit/pkg/executor"
 	"github.com/hbagdi/hit/pkg/log"
+	"github.com/hbagdi/hit/pkg/printer"
 	"github.com/hbagdi/hit/pkg/version"
 	"go.uber.org/zap"
 )
@@ -125,19 +127,18 @@ func Run(ctx context.Context, args ...string) (err error) {
 		return fmt.Errorf("build request: %v", err)
 	}
 
-	err = printRequest(req)
-	if err != nil {
-		return fmt.Errorf("print request: %v", err)
-	}
-
 	hit, err := executor.Execute(ctx, id, req)
 	if err != nil {
 		return fmt.Errorf("execute request: %v", err)
 	}
 
-	err = printResponse(hit.Response)
+	p := printer.NewPrinter(printer.Opts{
+		Mode:   printer.ModeColorConsole,
+		Writer: os.Stdout,
+	})
+	err = p.Print(hit)
 	if err != nil {
-		return err
+		return fmt.Errorf("print request to console: %w", err)
 	}
 
 	printLatestVersion()
