@@ -27,11 +27,14 @@ type Store struct {
 const loadLatestQuery = `select 
 hit_request_id,
 created_at,
+http_request_proto,
+http_request_scheme,
 http_request_method,
 http_request_host,
 http_request_path,
 http_request_query_string,
 http_request_body,
+http_response_proto,
 http_response_code,
 http_response_body
 from hits
@@ -46,9 +49,12 @@ func (s *Store) LoadLatestHitForID(ctx context.Context, hitRequestID string) (mo
 		return model.Hit{}, err
 	}
 	var hit model.Hit
-	err := rows.Scan(&hit.HitRequestID, &hit.CreatedAt, &hit.Request.Method,
+	err := rows.Scan(&hit.HitRequestID, &hit.CreatedAt,
+		&hit.Request.Proto, &hit.Request.Scheme,
+		&hit.Request.Method,
 		&hit.Request.Host, &hit.Request.Path, &hit.Request.QueryString,
-		&hit.Request.Body, &hit.Response.Code, &hit.Response.Body)
+		&hit.Request.Body,
+		&hit.Response.Proto, &hit.Response.Code, &hit.Response.Body)
 	if err != nil {
 		return model.Hit{}, err
 	}
@@ -58,6 +64,8 @@ func (s *Store) LoadLatestHitForID(ctx context.Context, hitRequestID string) (mo
 const saveQuery = `insert into hits(
 hit_request_id,
 created_at,
+http_request_proto,
+http_request_scheme,
 http_request_method,
 http_request_host,
 http_request_path,
@@ -65,6 +73,7 @@ http_request_query_string,
 http_request_headers,
 http_request_body,
 http_response_code,
+http_response_proto,
 http_response_status,
 http_response_headers,
 http_response_body
@@ -72,6 +81,8 @@ http_response_body
 values(
 @hitRequestID,
 @createdAt,
+@httpRequestProto,
+@httpRequestScheme,
 @httpRequestMethod,
 @httpRequestHost,
 @httpRequestPath,
@@ -79,6 +90,7 @@ values(
 @httpRequestHeaders,
 @httpRequestBody,
 @httpResponseCode,
+@httpResponseProto,
 @httpResponseStatus,
 @httpResponseHeaders,
 @httpResponseBody
@@ -96,6 +108,8 @@ func (s *Store) Save(ctx context.Context, hit model.Hit) error {
 	_, err = s.db.ExecContext(ctx, saveQuery,
 		sql.Named("hitRequestID", hit.HitRequestID),
 		sql.Named("createdAt", time.Now().Unix()),
+		sql.Named("httpRequestProto", hit.Request.Proto),
+		sql.Named("httpRequestScheme", hit.Request.Scheme),
 		sql.Named("httpRequestMethod", hit.Request.Method),
 		sql.Named("httpRequestHost", hit.Request.Host),
 		sql.Named("httpRequestPath", hit.Request.Path),
@@ -103,6 +117,7 @@ func (s *Store) Save(ctx context.Context, hit model.Hit) error {
 		sql.Named("httpRequestHeaders", string(requestHeaders)),
 		sql.Named("httpRequestBody", hit.Request.Body),
 		sql.Named("httpResponseCode", hit.Response.Code),
+		sql.Named("httpResponseProto", hit.Response.Proto),
 		sql.Named("httpResponseStatus", hit.Response.Status),
 		sql.Named("httpResponseHeaders", string(responseHeaders)),
 		sql.Named("httpResponseBody", hit.Response.Body),
@@ -119,12 +134,15 @@ type PageOpts struct{}
 const listQuery = `select 
 hit_request_id,
 created_at,
+http_request_proto,
+http_request_scheme,
 http_request_method,
 http_request_host,
 http_request_path,
 http_request_query_string,
 http_request_headers,
 http_request_body,
+http_response_proto,
 http_response_code,
 http_response_status,
 http_response_headers,
@@ -149,10 +167,11 @@ func (s *Store) List(ctx context.Context, opts PageOpts) ([]model.Hit, error) {
 			responseHeadersAsJSON sql.NullString
 			responseHeaders       http.Header
 		)
-		err := rows.Scan(&hit.HitRequestID, &hit.CreatedAt, &hit.Request.Method,
+		err := rows.Scan(&hit.HitRequestID, &hit.CreatedAt,
+			&hit.Request.Proto, &hit.Request.Scheme, &hit.Request.Method,
 			&hit.Request.Host, &hit.Request.Path, &hit.Request.QueryString,
 			&requestHeadersAsJSON, &hit.Request.Body,
-			&hit.Response.Code, &hit.Response.Status,
+			&hit.Response.Proto, &hit.Response.Code, &hit.Response.Status,
 			&responseHeadersAsJSON, &hit.Response.Body)
 		if err != nil {
 			return nil, err

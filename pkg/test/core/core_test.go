@@ -3,7 +3,6 @@ package core
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"testing"
@@ -52,16 +51,17 @@ func TestBasic(t *testing.T) {
 	require.Nil(t, e.LoadFiles())
 
 	t.Run("successfully performs a request with static yaml", func(t *testing.T) {
-		req, err := e.BuildRequest("post-static-json", nil)
+		id := "post-static-json"
+		req, err := e.BuildRequest(id, nil)
 		require.Nil(t, err)
 		require.NotNil(t, req)
 
-		res, err := e.Execute(context.Background(), req)
+		hit, err := e.Execute(context.Background(), id, req)
 		require.Nil(t, err)
-		require.NotNil(t, res)
-		require.Equal(t, http.StatusOK, res.StatusCode)
+		require.NotNil(t, hit)
+		require.Equal(t, http.StatusOK, hit.Response.Code)
 
-		body := gjsonBody(t, res)
+		body := gjsonBody(t, hit.Response.Body)
 		require.Equal(t, "foobar", body.Get("json.string").String())
 		require.Equal(t, int64(42), body.Get("json.num").Int())
 		require.Equal(t, 42.42, body.Get("json.num-float").Float())
@@ -72,62 +72,61 @@ func TestBasic(t *testing.T) {
 		req, err := e.BuildRequest("get-headers", nil)
 		require.Nil(t, err)
 		require.NotNil(t, req)
-		require.Equal(t, "https://httpbin.org/headers",
-			req.HTTPRequest.URL.String())
-		require.Empty(t, req.HTTPRequest.Header.Get("content-type"))
+		require.Equal(t, "https://httpbin.org/headers", req.URL())
+		require.Empty(t, req.Header.Get("content-type"))
 	})
 	t.Run("successfully performs a basic request", func(t *testing.T) {
-		req, err := e.BuildRequest("get-headers", nil)
+		id := "get-headers"
+		req, err := e.BuildRequest(id, nil)
 		require.Nil(t, err)
 		require.NotNil(t, req)
-		require.Equal(t, "https://httpbin.org/headers",
-			req.HTTPRequest.URL.String())
+		require.Equal(t, "https://httpbin.org/headers", req.URL())
 
-		res, err := e.Execute(context.Background(), req)
+		res, err := e.Execute(context.Background(), id, req)
 		require.Nil(t, err)
 		require.NotNil(t, res)
-		require.Equal(t, http.StatusOK, res.StatusCode)
+		require.Equal(t, http.StatusOK, res.Response.Code)
 
-		headerValue := gjsonBody(t, res).
+		headerValue := gjsonBody(t, res.Response.Body).
 			Get("headers.Foo").
 			String()
 		require.Equal(t, "bar", headerValue)
 	})
 	t.Run("content-type header is set with static body", func(t *testing.T) {
-		req, err := e.BuildRequest("post-with-static-body", nil)
+		id := "post-with-static-body"
+		req, err := e.BuildRequest(id, nil)
 		require.Nil(t, err)
 		require.NotNil(t, req)
-		res, err := e.Execute(context.Background(), req)
+		res, err := e.Execute(context.Background(), id, req)
 		require.Nil(t, err)
-		defer res.Body.Close()
-		require.Equal(t, http.StatusOK, res.StatusCode)
-		body := gjsonBody(t, res)
+		require.Equal(t, http.StatusOK, res.Response.Code)
+		body := gjsonBody(t, res.Response.Body)
 		contentTypeHeaderValue := body.Get("headers.Content-Type").String()
 		require.Equal(t, "application/json", contentTypeHeaderValue)
 	})
 	t.Run("populate cache", func(t *testing.T) {
-		req, err := e.BuildRequest("populate-cache", nil)
+		id := "populate-cache"
+		req, err := e.BuildRequest(id, nil)
 		require.Nil(t, err)
 		require.NotNil(t, req)
-		res, err := e.Execute(context.Background(), req)
+		res, err := e.Execute(context.Background(), id, req)
 		require.Nil(t, err)
-		defer res.Body.Close()
-		require.Equal(t, http.StatusOK, res.StatusCode)
-		body := gjsonBody(t, res)
+		require.Equal(t, http.StatusOK, res.Response.Code)
+		body := gjsonBody(t, res.Response.Body)
 		contentTypeHeaderValue := body.Get("headers.Content-Type").String()
 		require.Equal(t, "application/json", contentTypeHeaderValue)
 	})
 	t.Run("request with body referencing cache", func(t *testing.T) {
-		req, err := e.BuildRequest("get-using-cache", nil)
+		id := "get-using-cache"
+		req, err := e.BuildRequest(id, nil)
 		require.Nil(t, err)
 		require.NotNil(t, req)
-		require.Equal(t, "https://httpbin.org/anything",
-			req.HTTPRequest.URL.String())
+		require.Equal(t, "https://httpbin.org/anything", req.URL())
 
-		res, err := e.Execute(context.Background(), req)
+		res, err := e.Execute(context.Background(), id, req)
 		require.Nil(t, err)
 
-		js := gjsonBody(t, res)
+		js := gjsonBody(t, res.Response.Body)
 		str := js.Get("json.string").
 			String()
 		require.Equal(t, "foobar", str)
@@ -148,46 +147,46 @@ func TestBasic(t *testing.T) {
 		require.Equal(t, 42.42, numFloat)
 	})
 	t.Run("request with path referencing cache", func(t *testing.T) {
-		req, err := e.BuildRequest("get-cache-ref-in-path", nil)
+		id := "get-cache-ref-in-path"
+		req, err := e.BuildRequest(id, nil)
 		require.Nil(t, err)
 		require.NotNil(t, req)
-		require.Equal(t, "https://httpbin.org/anything/foobar",
-			req.HTTPRequest.URL.String())
+		require.Equal(t, "https://httpbin.org/anything/foobar", req.URL())
 
-		res, err := e.Execute(context.Background(), req)
+		res, err := e.Execute(context.Background(), id, req)
 		require.Nil(t, err)
-		require.Equal(t, http.StatusOK, res.StatusCode)
-		js := gjsonBody(t, res)
+		require.Equal(t, http.StatusOK, res.Response.Code)
+		js := gjsonBody(t, res.Response.Body)
 
 		url := js.Get("url").String()
 		require.Equal(t, "https://httpbin.org/anything/foobar", url)
 	})
 	t.Run("request with path referencing cache in a path segment", func(t *testing.T) {
-		req, err := e.BuildRequest("get-cache-ref-in-path-in-middle", nil)
+		id := "get-cache-ref-in-path-in-middle"
+		req, err := e.BuildRequest(id, nil)
 		require.Nil(t, err)
 		require.NotNil(t, req)
-		require.Equal(t, "https://httpbin.org/anything/foobar/baz",
-			req.HTTPRequest.URL.String())
+		require.Equal(t, "https://httpbin.org/anything/foobar/baz", req.URL())
 
-		res, err := e.Execute(context.Background(), req)
+		res, err := e.Execute(context.Background(), id, req)
 		require.Nil(t, err)
-		require.Equal(t, http.StatusOK, res.StatusCode)
-		js := gjsonBody(t, res)
+		require.Equal(t, http.StatusOK, res.Response.Code)
+		js := gjsonBody(t, res.Response.Body)
 
 		url := js.Get("url").String()
 		require.Equal(t, "https://httpbin.org/anything/foobar/baz", url)
 	})
 	t.Run("request with query param referencing cache", func(t *testing.T) {
-		req, err := e.BuildRequest("get-cache-ref-in-query-param", nil)
+		id := "get-cache-ref-in-query-param"
+		req, err := e.BuildRequest(id, nil)
 		require.Nil(t, err)
 		require.NotNil(t, req)
-		require.Equal(t, "https://httpbin.org/anything/qp?foo=42",
-			req.HTTPRequest.URL.String())
+		require.Equal(t, "https://httpbin.org/anything/qp?foo=42", req.URL())
 
-		res, err := e.Execute(context.Background(), req)
+		res, err := e.Execute(context.Background(), id, req)
 		require.Nil(t, err)
-		require.Equal(t, http.StatusOK, res.StatusCode)
-		js := gjsonBody(t, res)
+		require.Equal(t, http.StatusOK, res.Response.Code)
+		js := gjsonBody(t, res.Response.Body)
 
 		url := js.Get("url").String()
 		require.Equal(t, "https://httpbin.org/anything/qp?foo=42", url)
@@ -196,35 +195,37 @@ func TestBasic(t *testing.T) {
 		req, err := e.BuildRequest("get-does-not-exist", nil)
 		require.NotNil(t, err)
 		require.Equal(t, "request 'get-does-not-exist' not found", err.Error())
-		require.Nil(t, req)
+		require.Empty(t, req)
 	})
 	t.Run("no input from CLI returns an error", func(t *testing.T) {
-		req, err := e.BuildRequest("cli-arg-types", &executor.RequestOpts{
+		id := "cli-arg-types" //nolint:goconst
+		req, err := e.BuildRequest(id, &executor.RequestOpts{
 			Params: []string{"@req"},
 		})
-		require.Nil(t, req)
+		require.Empty(t, req)
 		require.ErrorContains(t, err,
 			"cannot find command-line argument number '@1'")
 	})
 	t.Run("string input via CLI is injected", func(t *testing.T) {
-		req, err := e.BuildRequest("cli-arg-types", &executor.RequestOpts{
+		id := "cli-arg-types"
+		req, err := e.BuildRequest(id, &executor.RequestOpts{
 			Params: []string{"@req", "foobar"},
 		})
 		require.Nil(t, err)
-		require.Equal(t, "https://httpbin.org/anything/foobar",
-			req.HTTPRequest.URL.String())
-		res, err := e.Execute(context.Background(), req)
+		require.Equal(t, "https://httpbin.org/anything/foobar", req.URL())
+		res, err := e.Execute(context.Background(), id, req)
 		require.Nil(t, err)
-		require.Equal(t, http.StatusOK, res.StatusCode)
-		js := gjsonBody(t, res)
+		require.Equal(t, http.StatusOK, res.Response.Code)
+		js := gjsonBody(t, res.Response.Body)
 		input := js.Get("json.input").String()
 		require.Equal(t, "foobar", input)
 	})
 	t.Run("referencing $0 errors", func(t *testing.T) {
-		req, err := e.BuildRequest("bad-cli-arg", &executor.RequestOpts{
+		id := "bad-cli-arg"
+		req, err := e.BuildRequest(id, &executor.RequestOpts{
 			Params: []string{"@req"},
 		})
-		require.Nil(t, req)
+		require.Empty(t, req)
 		require.NotNil(t, err)
 		require.ErrorContains(t, err,
 			"positional argument must be greater than 0")
@@ -233,7 +234,7 @@ func TestBasic(t *testing.T) {
 		req, err := e.BuildRequest("invalid-ref", &executor.RequestOpts{
 			Params: []string{"@req"},
 		})
-		require.Nil(t, req)
+		require.Empty(t, req)
 		require.NotNil(t, err)
 		require.ErrorContains(t, err,
 			"invalid reference '@'")
@@ -242,90 +243,87 @@ func TestBasic(t *testing.T) {
 		req, err := e.BuildRequest("invalid-req-ref", &executor.RequestOpts{
 			Params: []string{"@req"},
 		})
-		require.Nil(t, req)
+		require.Empty(t, req)
 		require.NotNil(t, err)
 		require.ErrorContains(t, err,
 			"invalid reference: '@redirect'")
 	})
 	t.Run("number input via CLI is injected", func(t *testing.T) {
-		req, err := e.BuildRequest("cli-arg-types", &executor.RequestOpts{
+		id := "cli-arg-types"
+		req, err := e.BuildRequest(id, &executor.RequestOpts{
 			Params: []string{"@req", "42"},
 		})
 		require.Nil(t, err)
-		require.Equal(t, "https://httpbin.org/anything/42",
-			req.HTTPRequest.URL.String())
-		res, err := e.Execute(context.Background(), req)
+		require.Equal(t, "https://httpbin.org/anything/42", req.URL())
+		res, err := e.Execute(context.Background(), id, req)
 		require.Nil(t, err)
-		require.Equal(t, http.StatusOK, res.StatusCode)
-		js := gjsonBody(t, res)
+		require.Equal(t, http.StatusOK, res.Response.Code)
+		js := gjsonBody(t, res.Response.Body)
 		input := js.Get("json.input").Int()
 		require.Equal(t, int64(42), input)
 	})
 	t.Run("float input via CLI is injected", func(t *testing.T) {
-		req, err := e.BuildRequest("cli-arg-types", &executor.RequestOpts{
+		id := "cli-arg-types"
+		req, err := e.BuildRequest(id, &executor.RequestOpts{
 			Params: []string{"@req", "42.2442"},
 		})
 		require.Nil(t, err)
-		require.Equal(t, "https://httpbin.org/anything/42.2442",
-			req.HTTPRequest.URL.String())
-		res, err := e.Execute(context.Background(), req)
+		require.Equal(t, "https://httpbin.org/anything/42.2442", req.URL())
+		res, err := e.Execute(context.Background(), id, req)
 		require.Nil(t, err)
-		require.Equal(t, http.StatusOK, res.StatusCode)
-		js := gjsonBody(t, res)
+		require.Equal(t, http.StatusOK, res.Response.Code)
+		js := gjsonBody(t, res.Response.Body)
 		input := js.Get("json.input").Float()
 		require.Equal(t, 42.2442, input)
 	})
 	t.Run("bool true input via CLI is injected", func(t *testing.T) {
-		req, err := e.BuildRequest("cli-arg-types", &executor.RequestOpts{
+		id := "cli-arg-types"
+		req, err := e.BuildRequest(id, &executor.RequestOpts{
 			Params: []string{"@req", "true"},
 		})
 		require.Nil(t, err)
-		require.Equal(t, "https://httpbin.org/anything/true",
-			req.HTTPRequest.URL.String())
-		res, err := e.Execute(context.Background(), req)
+		require.Equal(t, "https://httpbin.org/anything/true", req.URL())
+		res, err := e.Execute(context.Background(), id, req)
 		require.Nil(t, err)
-		require.Equal(t, http.StatusOK, res.StatusCode)
-		js := gjsonBody(t, res)
+		require.Equal(t, http.StatusOK, res.Response.Code)
+		js := gjsonBody(t, res.Response.Body)
 		input := js.Get("json.input").Bool()
 		require.Equal(t, true, input)
 	})
 	t.Run("bool false input via CLI is injected", func(t *testing.T) {
-		req, err := e.BuildRequest("cli-arg-types", &executor.RequestOpts{
+		id := "cli-arg-types"
+		req, err := e.BuildRequest(id, &executor.RequestOpts{
 			Params: []string{"@req", "false"},
 		})
 		require.Nil(t, err)
-		require.Equal(t, "https://httpbin.org/anything/false",
-			req.HTTPRequest.URL.String())
-		res, err := e.Execute(context.Background(), req)
+		require.Equal(t, "https://httpbin.org/anything/false", req.URL())
+		res, err := e.Execute(context.Background(), id, req)
 		require.Nil(t, err)
-		require.Equal(t, http.StatusOK, res.StatusCode)
-		js := gjsonBody(t, res)
+		require.Equal(t, http.StatusOK, res.Response.Code)
+		js := gjsonBody(t, res.Response.Body)
 		input := js.Get("json.input").Bool()
 		require.Equal(t, false, input)
 	})
 	t.Run("redirects are not followed", func(t *testing.T) {
-		req, err := e.BuildRequest("redirect", &executor.RequestOpts{
+		id := "redirect"
+		req, err := e.BuildRequest(id, &executor.RequestOpts{
 			Params: []string{"@req"},
 		})
 		require.Nil(t, err)
-		require.Equal(t, "https://httpbin.org/status/302",
-			req.HTTPRequest.URL.String())
-		res, err := e.Execute(context.Background(), req)
+		require.Equal(t, "https://httpbin.org/status/302", req.URL())
+		res, err := e.Execute(context.Background(), id, req)
 		require.Nil(t, err)
-		require.Equal(t, http.StatusFound, res.StatusCode)
-		require.Equal(t, res.Header.Get("location"), "/redirect/1")
+		require.Equal(t, http.StatusFound, res.Response.Code)
+		require.Equal(t, res.Response.Header.Get("location"), "/redirect/1")
 	})
 }
 
-func gjsonBody(t *testing.T, res *http.Response) gjson.Result {
+func gjsonBody(t *testing.T, body []byte) gjson.Result {
 	t.Helper()
-	defer res.Body.Close()
-	bodyBytes, err := ioutil.ReadAll(res.Body)
-	require.Nil(t, err)
-	if !gjson.Valid(string(bodyBytes)) {
+	if !gjson.Valid(string(body)) {
 		require.FailNow(t, "invalid JSON in the body")
 	}
 
-	js := gjson.ParseBytes(bodyBytes)
+	js := gjson.ParseBytes(body)
 	return js
 }
