@@ -2,16 +2,13 @@ package cmd
 
 import (
 	"context"
-	stdjson "encoding/json"
 	"fmt"
-	"io"
-	"net/http"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/hbagdi/hit/pkg/db"
 	"github.com/hbagdi/hit/pkg/log"
 	"github.com/hbagdi/hit/pkg/model"
-	json "github.com/nwidger/jsoncolor"
+	"github.com/hbagdi/hit/pkg/printer"
 	"github.com/rivo/tview"
 )
 
@@ -40,99 +37,11 @@ func (b *browser) listHandler() {
 	i := hitsList.GetCurrentItem()
 	hit := b.hits[i]
 
-	requestLine := fmt.Sprintf("%s %s", hit.Request.Method, hit.Request.Path)
-	if hit.Request.QueryString != "" {
-		requestLine += fmt.Sprintf("?%s", hit.Request.QueryString)
-	}
-	requestLine += "\n"
-	fprintf(hitTextArea, "%s", requestLine)
-
-	prettyPrintHeaders(hitTextArea, hit.Request.Header)
-
-	jsBody, err := prettyPrint(hit.Request.Body)
-	if err != nil {
-		fmt.Println("request body", err)
-	}
-	fprintf(hitTextArea, "\n%s\n\n", jsBody)
-
-	fprintf(hitTextArea, "HTTP/1.1 %s\n", hit.Response.Status)
-	prettyPrintHeaders(hitTextArea, hit.Response.Header)
-
-	js, err := prettyPrint(hit.Response.Body)
-	if err != nil {
-		fmt.Println("response body", err)
-	}
-	fprintf(hitTextArea, "\n%s\n", string(js))
-}
-
-type fi struct {
-	color string
-}
-
-func (f fi) SprintfFunc() func(format string, a ...interface{}) string {
-	return func(format string, a ...interface{}) string {
-		return fmt.Sprintf("["+f.color+"]"+format+"[-:-:-]", a...)
-	}
-}
-
-var formatter *json.Formatter
-
-func init() {
-	// create custom formatter
-	f := json.NewFormatter()
-	// set custom colors
-	white := fi{color: "white"}
-	blue := fi{color: "blue"}
-	yellow := fi{color: "yellow"}
-	green := fi{color: "green"}
-
-	f.ObjectColor = white
-	f.ArrayColor = white
-	f.FieldQuoteColor = white
-	f.CommaColor = white
-	f.StringQuoteColor = white
-	f.ColonColor = white
-	f.SpaceColor = white
-
-	f.FieldColor = blue
-
-	f.NullColor = fi{color: "#656565"}
-
-	f.StringColor = green
-
-	f.TrueColor = yellow
-	f.FalseColor = yellow
-
-	f.NumberColor = blue
-	formatter = f
-}
-
-func prettyPrintHeaders(w io.Writer, header http.Header) {
-	for key, values := range header {
-		for _, value := range values {
-			fprintf(w, "[teal]%s[white]: %s\n", key, value)
-		}
-	}
-}
-
-func prettyPrint(js []byte) ([]byte, error) {
-	if len(js) == 0 {
-		return js, nil
-	}
-
-	var m interface{}
-	err := stdjson.Unmarshal(js, &m)
-	if err != nil {
-		// probably not a valid json
-		// TODO(hbagdi): could there be other failure modes?
-		return js, nil
-	}
-
-	dst, err := json.MarshalIndentWithFormatter(m, "", "  ", formatter)
-	if err != nil {
-		return nil, err
-	}
-	return dst, nil
+	p := printer.NewPrinter(printer.Opts{
+		Mode:   printer.ModeBrowser,
+		Writer: hitTextArea,
+	})
+	_ = p.Print(hit) // TODO(hbagdi): error handling
 }
 
 func (b *browser) keyHandler(event *tcell.EventKey) *tcell.EventKey {
@@ -310,12 +219,5 @@ func colorForCode(code int) string {
 		return "red"
 	default:
 		return "white"
-	}
-}
-
-func fprintf(w io.Writer, format string, a ...any) {
-	_, err := fmt.Fprintf(w, format, a...)
-	if err != nil {
-		panic(fmt.Sprintf("fmt.Fprintf failed: %v", err))
 	}
 }
