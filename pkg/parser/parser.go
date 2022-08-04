@@ -91,16 +91,8 @@ func request(id string, sc *scanner) (Request, error) {
 	}
 	i := 0
 	var err error
-	res.Method, err = method(lines[i])
+	res.Method, res.Path, err = getMethodAndPath(lines[i])
 	if err != nil {
-		return Request{}, err
-	}
-	i++
-	if i == l {
-		return Request{}, fmt.Errorf("expected at least a method and path in" + " request")
-	}
-	res.Path, err = getPath(lines[i])
-	if i == l {
 		return Request{}, err
 	}
 	i++
@@ -164,20 +156,14 @@ func bodyEncoding(s string) (string, error) {
 	return s[1:], nil
 }
 
-func getPath(s string) (string, error) {
-	if !strings.HasPrefix(s, "/") {
-		return "", fmt.Errorf("expected path to begin with /")
-	}
-	return s, nil
-}
+var requestLineRegex = regexp.MustCompile(`^([a-zA-Z]+) (\/.*)$`)
 
-var methodRegex = regexp.MustCompile("^[a-zA-Z]+$")
-
-func method(s string) (string, error) {
-	if !methodRegex.MatchString(s) {
-		return "", fmt.Errorf("invalid method: %v", s)
+func getMethodAndPath(s string) (string, string, error) {
+	matches := requestLineRegex.FindStringSubmatch(s)
+	if len(matches) != 3 { //nolint:gomnd
+		return "", "", fmt.Errorf("invalid request line")
 	}
-	return strings.ToUpper(s), nil
+	return matches[1], matches[2], nil
 }
 
 func global(sc *scanner, g *Global) error {
