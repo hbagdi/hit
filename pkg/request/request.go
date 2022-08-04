@@ -1,7 +1,6 @@
 package request
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -15,8 +14,7 @@ import (
 )
 
 const (
-	encodingY2J  = "y2j"
-	encodingHY2J = "hy2j"
+	encodingY2J = "y2j"
 )
 
 type Options struct {
@@ -183,28 +181,18 @@ func resolveBody(request parser.Request, resolver resolver) ([]byte, contentType
 	}
 	switch request.BodyEncoding {
 	case encodingY2J:
-		var i interface{}
-		err := yaml.Unmarshal([]byte(bodyS), &i)
-		if err != nil {
-			return nil, contentTypeInvalid, err
-		}
-		body, err = json.Marshal(i)
-		if err != nil {
-			return nil, contentTypeInvalid, err
-		}
-	case encodingHY2J:
 		jsonBytes, err := yaml.YAMLToJSON([]byte(bodyS))
 		if err != nil {
-			return nil, contentTypeInvalid, err
+			return nil, contentTypeNone, err
 		}
 		r := &BodyResolver{resolver: resolver}
 		body, err = r.Resolve(jsonBytes)
 		if err != nil {
-			return nil, contentTypeInvalid, err
+			return nil, contentTypeNone, err
 		}
 	case "":
 	default:
-		return nil, contentTypeInvalid,
+		return nil, contentTypeNone,
 			fmt.Errorf("invalid encoding: %v", request.BodyEncoding)
 	}
 	return body, contentTypeJSON, nil

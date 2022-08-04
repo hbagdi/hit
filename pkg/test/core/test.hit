@@ -20,7 +20,7 @@ num-float: 42.42
 @get-using-cache
 GET /anything
 foo:bar
-~hy2j
+~y2j
 string: "@populate-cache.json.string"
 bool-true: "@populate-cache.json.bool-true"
 bool-false: "@populate-cache.json.bool-false"
@@ -38,7 +38,7 @@ GET /anything/qp?foo=@populate-cache.json.num
 
 @cli-arg-types
 POST /anything/@1
-~hy2j
+~y2j
 input: "@1"
 
 
