@@ -4,14 +4,12 @@ version=1
 
 
 @get-headers
-GET
-/headers
+GET /headers
 foo:bar
 
 
 @populate-cache
-POST
-/anything
+POST /anything
 ~y2j
 string: foobar
 bool-true: true
@@ -20,8 +18,7 @@ num: 42
 num-float: 42.42
 
 @get-using-cache
-GET
-/anything
+GET /anything
 foo:bar
 ~hy2j
 string: "@populate-cache.json.string"
@@ -31,34 +28,28 @@ num: "@populate-cache.json.num"
 num-float: "@populate-cache.json.num-float"
 
 @get-cache-ref-in-path
-GET
-/anything/@populate-cache.json.string
+GET /anything/@populate-cache.json.string
 
 @get-cache-ref-in-path-in-middle
-GET
-/anything/@populate-cache.json.string/baz
+GET /anything/@populate-cache.json.string/baz
 
 @get-cache-ref-in-query-param
-GET
-/anything/qp?foo=@populate-cache.json.num
+GET /anything/qp?foo=@populate-cache.json.num
 
 @cli-arg-types
-POST
-/anything/@1
+POST /anything/@1
 ~hy2j
 input: "@1"
 
 
 @post-with-static-body
-POST
-/anything
+POST /anything
 ~y2j
 foo: bar
 baz: buz
 
 @post-static-json
-POST
-/anything
+POST /anything
 ~y2j
 string: foobar
 bool-true: true
@@ -67,23 +58,18 @@ num: 42
 num-float: 42.42
 
 @redirect
-GET
-/status/302
+GET /status/302
 
 
 @bad-cli-arg
-POST
-/anything/@0
+POST /anything/@0
 
 @invalid-ref
-POST
-/anything/@
+POST /anything/@
 
 @invalid-req-ref
-POST
-/anything/@redirect
+POST /anything/@redirect
 
 @request-with-host-header
-POST
-/anything
+POST /anything
 host:foo.com

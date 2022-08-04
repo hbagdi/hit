@@ -4,23 +4,19 @@ version=1
 
 
 @gen-root-node
-POST
-/v1/node
+POST /v1/node
 ~y2j
 title: root-node
 
 
 @get-node
-GET
-/v1/node/@1
+GET /v1/node/@1
 
 @create-node
-POST
-/v1/node
+POST /v1/node
 ~hy2j
 title: "@1"
 parent_id: "@2"
 
 @delete-node
-DELETE
-/v1/node/@1
+DELETE /v1/node/@1
