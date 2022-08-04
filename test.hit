@@ -14,7 +14,7 @@ GET /v1/node/@1
 
 @create-node
 POST /v1/node
-~hy2j
+~y2j
 title: "@1"
 parent_id: "@2"
 
