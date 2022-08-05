@@ -78,3 +78,9 @@ POST /anything/@redirect
 @request-with-host-header
 POST /anything
 host:foo.com
+
+@no-body-encoding
+POST /foobar
+~
+plain-text body
+~
