@@ -325,6 +325,16 @@ func TestBasic(t *testing.T) {
 		require.Nil(t, err)
 		require.Equal(t, "foo.com", req.Header.Get("host"))
 	})
+	t.Run("no body encoding requests are sent as is", func(t *testing.T) {
+		id := "no-body-encoding"
+		req, err := e.BuildRequest(id, &executor.RequestOpts{
+			Params: []string{"@req"},
+		})
+		require.Nil(t, err)
+		require.Emptyf(t, req.Header.Get("content-type"),
+			"no content-type header is set")
+		require.Equal(t, "plain-text body", string(req.Body))
+	})
 }
 
 func gjsonBody(t *testing.T, body []byte) gjson.Result {

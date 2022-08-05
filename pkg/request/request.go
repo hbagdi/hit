@@ -51,7 +51,7 @@ func Generate(request parser.Request, opts Options) (model.Request, error) {
 
 	switch cType {
 	case contentTypeNone:
-	// no body, proceed as usual
+	// no body encoding, proceed without any implicit content-type header
 	case contentTypeJSON:
 		headers.Set("content-type", "application/json")
 	case contentTypeInvalid:
@@ -173,27 +173,25 @@ const (
 )
 
 func resolveBody(request parser.Request, resolver resolver) ([]byte, contentType, error) {
-	bodyS := strings.Join(request.Body, "\n")
-	var body []byte
-
-	if bodyS == "" {
+	if len(request.Body) == 0 {
 		return nil, contentTypeNone, nil
 	}
+
+	parsedBody := []byte(strings.Join(request.Body, "\n"))
+
 	switch request.BodyEncoding {
 	case encodingY2J:
-		jsonBytes, err := yaml.YAMLToJSON([]byte(bodyS))
+		jsonBytes, err := yaml.YAMLToJSON(parsedBody)
 		if err != nil {
 			return nil, contentTypeNone, err
 		}
 		r := &BodyResolver{resolver: resolver}
-		body, err = r.Resolve(jsonBytes)
+		preparedBody, err := r.Resolve(jsonBytes)
 		if err != nil {
 			return nil, contentTypeNone, err
 		}
-	case "":
+		return preparedBody, contentTypeJSON, nil
 	default:
-		return nil, contentTypeNone,
-			fmt.Errorf("invalid encoding: %v", request.BodyEncoding)
+		return parsedBody, contentTypeNone, nil
 	}
-	return body, contentTypeJSON, nil
 }
