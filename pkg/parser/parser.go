@@ -121,16 +121,25 @@ func request(id string, sc *scanner) (Request, error) {
 	}
 
 	// has body
-	res.BodyEncoding, err = bodyEncoding(lines[i])
-	if err != nil {
-		return Request{}, err
+	if i == l-1 {
+		return Request{}, fmt.Errorf("invalid input: expected body")
+	}
+	encodingLine := lines[i]
+	if encodingLine[0] != '~' {
+		return Request{}, fmt.Errorf("invalid input line: '%s', "+
+			"expected '~'", encodingLine)
+	}
+	if lines[l-1] != "~" {
+		return Request{}, fmt.Errorf("invalid end of body: '%s', "+
+			"expected '~'", lines[l-1])
+	}
+
+	if len(encodingLine) > 1 {
+		res.BodyEncoding = encodingLine[1:]
 	}
 	i++
-	if i == l {
-		return res, nil
-	}
 	// remaining body
-	res.Body = lines[i:]
+	res.Body = lines[i : l-1]
 
 	return res, nil
 }
@@ -147,13 +156,6 @@ func parseHeaders(lines []string) (map[string][]string, error) {
 		res[kv[0]] = []string{kv[1]}
 	}
 	return res, nil
-}
-
-func bodyEncoding(s string) (string, error) {
-	if !strings.HasPrefix(s, "~") {
-		return "", fmt.Errorf("invalid body encoding")
-	}
-	return s[1:], nil
 }
 
 var requestLineRegex = regexp.MustCompile(`^([a-zA-Z]+) (\/.*)$`)

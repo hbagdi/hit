@@ -16,6 +16,7 @@ bool-true: true
 bool-false: false
 num: 42
 num-float: 42.42
+~
 
 @get-using-cache
 GET /anything
@@ -26,6 +27,7 @@ bool-true: "@populate-cache.json.bool-true"
 bool-false: "@populate-cache.json.bool-false"
 num: "@populate-cache.json.num"
 num-float: "@populate-cache.json.num-float"
+~
 
 @get-cache-ref-in-path
 GET /anything/@populate-cache.json.string
@@ -40,6 +42,7 @@ GET /anything/qp?foo=@populate-cache.json.num
 POST /anything/@1
 ~y2j
 input: "@1"
+~
 
 
 @post-with-static-body
@@ -47,6 +50,7 @@ POST /anything
 ~y2j
 foo: bar
 baz: buz
+~
 
 @post-static-json
 POST /anything
@@ -56,6 +60,7 @@ bool-true: true
 bool-false: false
 num: 42
 num-float: 42.42
+~
 
 @redirect
 GET /status/302
