@@ -1,18 +1,2 @@
-@global
-base_url=http://localhost:3000
-
-
 @c1
-get
-httpbin.org/v1/services
-
-
-@c2
-post
-/v1/services
-~y
-name: foo
-host: htptbin.org
-path: /
-port: 443
-protocol: https
+GET /foo
