@@ -1,0 +1,17 @@
+@_global
+base_url=https://api.twitter.com/2
+version=1
+
+
+@get-user
+GET /users/by/username/@1
+authorization:Bearer AAAAAAAAAAAAAAAAAAAAADAOfwEAAAAA0yakvryHAZJA0poU8eTPDwcKd%2BI%3D135BYG9vaquUJAvWuz5V17GWn49J0EN8iZuSRsvusI4gIrwAzI
+accept: */*
+
+@get-recent-tweets
+GET /users/@1/tweets
+authorization:Bearer AAAAAAAAAAAAAAAAAAAAADAOfwEAAAAA0yakvryHAZJA0poU8eTPDwcKd%2BI%3D135BYG9vaquUJAvWuz5V17GWn49J0EN8iZuSRsvusI4gIrwAzI
+
+@get-tweet
+GET /tweets/@1
+authorization:Bearer AAAAAAAAAAAAAAAAAAAAADAOfwEAAAAA0yakvryHAZJA0poU8eTPDwcKd%2BI%3D135BYG9vaquUJAvWuz5V17GWn49J0EN8iZuSRsvusI4gIrwAzI
