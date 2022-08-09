@@ -1,7 +1,7 @@
 package util
 
 import (
-	"io/ioutil"
+	"io"
 	"os"
 )
 
@@ -21,7 +21,7 @@ func (s StdCapture) Stop() {
 }
 
 func (s StdCapture) Stdout() []byte {
-	out, err := ioutil.ReadAll(s.reader)
+	out, err := io.ReadAll(s.reader)
 	if err != nil {
 		panic(err)
 	}

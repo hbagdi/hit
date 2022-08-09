@@ -1,6 +1,6 @@
 #!/bin/bash -x
 
-GO_VERSION=1.18.4
+GO_VERSION=1.19.0
 if [[ -z "$VERSION" ]];
 then
   echo "VERSION env var is not set"
@@ -23,6 +23,7 @@ mkdir $OUTPUT_DIR
 xgo \
   -go $GO_VERSION \
   -tags netgo,osusergo \
+  -trimpath \
   -ldflags="-s -w -X github.com/hbagdi/hit/pkg/version.Version=v$VERSION -X github.com/hbagdi/hit/pkg/version.CommitHash=$COMMIT" \
   --targets 'linux/amd64,linux/arm64,darwin/amd64,darwin/arm64,windows/amd64' \
   -out "hit-v$VERSION" \
