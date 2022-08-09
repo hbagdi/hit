@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"path/filepath"
@@ -195,6 +195,7 @@ func (e *Executor) Execute(ctx context.Context, requestID string, req model.Requ
 func httpRequestFromHitRequest(req model.Request) (*http.Request, error) {
 	body := bytes.NewReader(req.Body)
 
+	//nolint:noctx
 	httpRequest, err := http.NewRequest(req.Method, req.URL(), body)
 	if err != nil {
 		return nil, fmt.Errorf("create HTTP request: %w", err)
@@ -210,7 +211,7 @@ func httpRequestFromHitRequest(req model.Request) (*http.Request, error) {
 }
 
 func hitResponseFromHitRequest(resp *http.Response) (model.Response, error) {
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return model.Response{}, err
 	}

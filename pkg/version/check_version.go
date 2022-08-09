@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -43,7 +43,7 @@ func checkForUpdate() (string, error) {
 	if res.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("unexpected status code: %v", res.StatusCode)
 	}
-	js, err := ioutil.ReadAll(res.Body)
+	js, err := io.ReadAll(res.Body)
 	if err != nil {
 		return "", err
 	}
@@ -87,7 +87,7 @@ func loadVersionFromCache() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	js, err := ioutil.ReadFile(filename)
+	js, err := os.ReadFile(filename)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return "", errCacheMiss
@@ -129,7 +129,7 @@ func updateCache(version string, errored bool) error {
 	if err != nil {
 		return err
 	}
-	err = ioutil.WriteFile(filename, js, fileMode)
+	err = os.WriteFile(filename, js, fileMode)
 	if err != nil {
 		return fmt.Errorf("update version cache: %w", err)
 	}

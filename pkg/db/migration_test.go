@@ -3,7 +3,6 @@ package db
 import (
 	"context"
 	"database/sql"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -13,7 +12,7 @@ import (
 
 func getDB(t *testing.T) *sql.DB {
 	t.Helper()
-	dirName, err := ioutil.TempDir("/tmp", "hit-dev-test-*")
+	dirName, err := os.MkdirTemp("/tmp", "hit-dev-test-*")
 	require.NoError(t, err)
 	dsn := genDSN(filepath.Join(dirName, "test.db"))
 	db, err := sql.Open("sqlite3", dsn)
