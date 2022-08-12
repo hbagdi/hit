@@ -42,6 +42,7 @@ func (b *browser) listHandler() {
 		Writer: hitTextArea,
 	})
 	_ = p.Print(hit) // TODO(hbagdi): error handling
+	hitTextArea.ScrollToBeginning()
 }
 
 func (b *browser) keyHandler(event *tcell.EventKey) *tcell.EventKey {
