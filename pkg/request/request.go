@@ -43,6 +43,11 @@ func Generate(request parser.Request, opts Options) (model.Request, error) {
 	}
 	headers.Add("user-agent", "hit/"+version.Version)
 
+	for k, v := range opts.GlobalContext.Headers {
+		if headers.Get(k) == "" {
+			headers.Add(k, v)
+		}
+	}
 	if headers.Get("host") == "" {
 		// TODO(hbagdi): attempt to clean host or error out if host is not
 		// valid

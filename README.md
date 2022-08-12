@@ -47,7 +47,7 @@ sudo cp /tmp/hit /usr/local/bin/
 Create a hit file:
 ```shell
 echo '@_global
-base_url=https://nodes.yolo42.com
+baseURL=https://nodes.yolo42.com
 version=1
 
 

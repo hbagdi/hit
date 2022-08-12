@@ -1,6 +1,8 @@
 @_global
-base_url=http://localhost:7090
-version=1
+~
+baseURL: http://localhost:7090
+version: 1
+~
 
 
 @gen-root-node

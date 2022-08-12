@@ -68,7 +68,7 @@ func validateGlobal(g parser.Global) error {
 	if g.BaseURL != "" {
 		u, err := url.Parse(g.BaseURL)
 		if err != nil {
-			return fmt.Errorf("invalid base_url '%v': %v", g.BaseURL, err)
+			return fmt.Errorf("invalid baseURL '%v': %v", g.BaseURL, err)
 		}
 		if u.Scheme != "http" && u.Scheme != "https" {
 			return fmt.Errorf("invalid scheme '%v': only 'http' "+
@@ -90,12 +90,15 @@ func fetchGlobal(files []parser.File) (parser.Global, error) {
 		if res.BaseURL == "" && file.Global.BaseURL != "" {
 			res.BaseURL = file.Global.BaseURL
 		}
+		if res.Headers == nil && file.Global.Headers != nil {
+			res.Headers = file.Global.Headers
+		}
 	}
 	if res.Version != 1 {
 		return parser.Global{}, fmt.Errorf("no global.version")
 	}
 	if res.BaseURL == "" {
-		return parser.Global{}, fmt.Errorf("no global.base_url provided")
+		return parser.Global{}, fmt.Errorf("no global.baseURL provided")
 	}
 	return res, nil
 }
@@ -195,7 +198,6 @@ func (e *Executor) Execute(ctx context.Context, requestID string, req model.Requ
 func httpRequestFromHitRequest(req model.Request) (*http.Request, error) {
 	body := bytes.NewReader(req.Body)
 
-	//nolint:noctx
 	httpRequest, err := http.NewRequest(req.Method, req.URL(), body)
 	if err != nil {
 		return nil, fmt.Errorf("create HTTP request: %w", err)

@@ -1,6 +1,8 @@
 @_global
-base_url=https://httpbin.org
-version=1
+~
+baseURL: https://httpbin.org
+version: 1
+~
 
 
 @get-headers
