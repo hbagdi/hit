@@ -121,6 +121,7 @@ func (b *browser) setupMainPage() {
 
 func (b *browser) setupHitTextArea() {
 	b.hitTextArea = tview.NewTextView()
+	b.hitTextArea.SetWrap(false)
 	b.hitTextArea.
 		SetBorderPadding(1, 1, 1, 1).
 		SetBorder(true).
