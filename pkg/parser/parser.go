@@ -2,11 +2,13 @@ package parser
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"os"
 	"regexp"
-	"strconv"
 	"strings"
+
+	"github.com/ghodss/yaml"
 )
 
 var idRegex = regexp.MustCompile(`^@[a-zA-Z][a-z-A-Z0-9-_]+$`)
@@ -17,8 +19,9 @@ type File struct {
 }
 
 type Global struct {
-	BaseURL string
-	Version int
+	BaseURL string            `json:"baseURL"` //nolint:tagliatelle
+	Version int               `json:"version"`
+	Headers map[string]string `json:"headers"`
 }
 
 type Request struct {
@@ -169,28 +172,28 @@ func getMethodAndPath(s string) (string, string, error) {
 }
 
 func global(sc *scanner, g *Global) error {
+	var buf bytes.Buffer
+
+	scanned, line := sc.Line()
+	if !scanned || line != "~" {
+		return fmt.Errorf("expected '~' in the @_global section")
+	}
+
 	for {
 		scanned, line := sc.Line()
-		if !scanned {
+		if !scanned || line == "" {
+			return fmt.Errorf("expected '~' to terminate @_global section")
+		}
+		if line == "~" {
 			break
 		}
-		if line == "" {
-			return nil
-		}
-		kv := strings.Split(line, "=")
-		if len(kv) != kvSplitCount {
-			return fmt.Errorf("failed to parse line '%v'", line)
-		}
-		if kv[0] == "base_url" {
-			g.BaseURL = kv[1]
-		}
-		if kv[0] == "version" {
-			v, err := strconv.Atoi(kv[1])
-			if err != nil {
-				return fmt.Errorf("invalid version '%v'", kv[1])
-			}
-			g.Version = v
-		}
+		buf.WriteString(line)
+		buf.WriteByte('\n')
+	}
+
+	err := yaml.Unmarshal(buf.Bytes(), g)
+	if err != nil {
+		return fmt.Errorf("parse @_global section: %w", err)
 	}
 	return nil
 }

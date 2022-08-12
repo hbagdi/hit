@@ -1,6 +1,8 @@
 @_global
-base_url=ftp://httpbin.org
-version=1
+~
+baseURL: ftp://httpbin.org
+version: 1
+~
 
 
 @get-headers
