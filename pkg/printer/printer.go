@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"sort"
 
 	"github.com/fatih/color"
 	"github.com/hbagdi/hit/pkg/model"
@@ -189,7 +190,14 @@ func (p Printer) printHeaders(header http.Header) {
 	headerKeySprintf := p.colorPrinterFor(cyan).SprintfFunc()
 	headerValueSprintf := p.colorPrinterFor(white).SprintfFunc()
 	var res string
-	for k, values := range header {
+	keys := make([]string, 0, len(header))
+	for k := range header {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	for _, k := range keys {
+		values := header[k]
 		for _, v := range values {
 			res += headerKeySprintf("%s", k)
 			res += headerValueSprintf(": %s\n", v)
