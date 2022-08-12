@@ -15,5 +15,8 @@ accept: */*
 GET /users/@1/tweets
 
 @get-tweet
-GET /tweets/@1?expansions=geo.place_id,author_id,in_reply_to_user_id
+GET /tweets/@1?expansions=geo.place_id,author_id,in_reply_to_user_id&media.fields=url
+
+@search-tweet
+GET /tweets/search/recent?query=@1&expansions=attachments.media_keys
 
