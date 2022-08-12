@@ -46,13 +46,22 @@ func (b *browser) listHandler() {
 }
 
 func (b *browser) keyHandler(event *tcell.EventKey) *tcell.EventKey {
-	if event.Key() == tcell.KeyRune {
+	if event.Key() == tcell.KeyRune { //nolint:nestif
 		r := event.Rune()
 		if r == 'q' {
 			b.app.Stop()
 		}
 		if r == 's' {
 			b.shareModal()
+		}
+		if r == 'w' {
+			p := b.app.GetFocus()
+			if p == b.hitListView {
+				b.app.SetFocus(b.hitTextArea)
+			}
+			if p == b.hitTextArea {
+				b.app.SetFocus(b.hitListView)
+			}
 		}
 	}
 	return event
@@ -110,7 +119,8 @@ func (b *browser) setupMainPage() {
 	mainFrame.AddText("[::b]hit browser[::-]", true, tview.AlignCenter,
 		tcell.ColorWhite).
 		SetBorders(0, 0, 0, 0, 0, 0).
-		AddText("[s[] Share request [q[] Quit", false, tview.AlignCenter, tcell.ColorWhite)
+		AddText("[w[] Window focus [s[] Share request [q[] Quit", false,
+			tview.AlignCenter, tcell.ColorWhite)
 
 	mainFrame.SetTitle("hit browser").
 		SetBorder(false).
@@ -152,6 +162,23 @@ func (b *browser) setupHitsList() {
 		SetBorder(false).
 		SetBackgroundColor(tBlack)
 	b.refreshListView()
+	b.hitListView.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		r := event.Rune()
+		if r == 'j' {
+			current := b.hitListView.GetCurrentItem()
+			newItem := current + 1
+			if newItem == b.hitListView.GetItemCount() {
+				newItem = 0
+			}
+			b.hitListView.SetCurrentItem(newItem)
+		}
+		if r == 'k' {
+			current := b.hitListView.GetCurrentItem()
+			newItem := current - 1
+			b.hitListView.SetCurrentItem(newItem)
+		}
+		return event
+	})
 }
 
 func (b *browser) refreshListView() {
