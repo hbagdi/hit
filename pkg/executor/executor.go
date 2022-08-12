@@ -198,7 +198,7 @@ func (e *Executor) Execute(ctx context.Context, requestID string, req model.Requ
 func httpRequestFromHitRequest(req model.Request) (*http.Request, error) {
 	body := bytes.NewReader(req.Body)
 
-	httpRequest, err := http.NewRequest(req.Method, req.URL(), body)
+	httpRequest, err := http.NewRequest(req.Method, req.URL(), body) //nolint:noctx
 	if err != nil {
 		return nil, fmt.Errorf("create HTTP request: %w", err)
 	}
