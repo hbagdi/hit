@@ -1,0 +1,12 @@
+@_global
+~
+baseURL: https://httpbin.org
+version: 1
+headers:
+  user-agent: dilbert-browses-the-web
+~
+
+
+@get-headers
+GET /headers
+foo:bar

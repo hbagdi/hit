@@ -50,13 +50,14 @@ func TestBasic(t *testing.T) {
 
 	require.Nil(t, e.LoadFiles())
 
-	t.Run("injects global header", func(t *testing.T) {
+	t.Run("allows for overriding user-agent header", func(t *testing.T) {
 		id := "get-headers"
 		req, err := e.BuildRequest(id, nil)
 		require.Nil(t, err)
 		require.NotNil(t, req)
 		require.Equal(t, "https://httpbin.org/headers", req.URL())
-		require.Equal(t, "yes!!!!", req.Header.Get("global-header"))
+		require.Equal(t, "dilbert-browses-the-web",
+			req.Header.Get("user-agent"))
 
 		res, err := e.Execute(context.Background(), id, req)
 		require.Nil(t, err)
@@ -65,7 +66,8 @@ func TestBasic(t *testing.T) {
 
 		body := gjsonBody(t, res.Response.Body)
 		require.Equal(t, "bar", body.Get("headers.Foo").String())
-		require.Equal(t, "yes!!!!", body.Get("headers.Global-Header").String())
+		require.Equal(t, "dilbert-browses-the-web",
+			body.Get("headers.User-Agent").String())
 	})
 }
 
