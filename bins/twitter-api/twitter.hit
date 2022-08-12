@@ -1,17 +1,19 @@
 @_global
-base_url=https://api.twitter.com/2
-version=1
+~
+baseURL: https://api.twitter.com/2
+version: 1
+headers:
+  Authorization: Bearer AAAAAAAAAAAAAAAAAAAAADAOfwEAAAAA0yakvryHAZJA0poU8eTPDwcKd%2BI%3D135BYG9vaquUJAvWuz5V17GWn49J0EN8iZuSRsvusI4gIrwAzI
+~
 
 
 @get-user
 GET /users/by/username/@1
-authorization:Bearer AAAAAAAAAAAAAAAAAAAAADAOfwEAAAAA0yakvryHAZJA0poU8eTPDwcKd%2BI%3D135BYG9vaquUJAvWuz5V17GWn49J0EN8iZuSRsvusI4gIrwAzI
 accept: */*
 
 @get-recent-tweets
 GET /users/@1/tweets
-authorization:Bearer AAAAAAAAAAAAAAAAAAAAADAOfwEAAAAA0yakvryHAZJA0poU8eTPDwcKd%2BI%3D135BYG9vaquUJAvWuz5V17GWn49J0EN8iZuSRsvusI4gIrwAzI
 
 @get-tweet
-GET /tweets/@1
-authorization:Bearer AAAAAAAAAAAAAAAAAAAAADAOfwEAAAAA0yakvryHAZJA0poU8eTPDwcKd%2BI%3D135BYG9vaquUJAvWuz5V17GWn49J0EN8iZuSRsvusI4gIrwAzI
+GET /tweets/@1?expansions=geo.place_id,author_id,in_reply_to_user_id
+
