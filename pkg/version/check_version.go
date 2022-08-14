@@ -5,49 +5,29 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
-	"net/http"
 	"os"
 	"path/filepath"
 	"time"
 
+	"github.com/hbagdi/hit/pkg/client"
 	"github.com/hbagdi/hit/pkg/log"
 	"github.com/hbagdi/hit/pkg/util"
 	"go.uber.org/zap"
 )
 
-const (
-	versionEndpoint = "https://hit-server.yolo42.com/api/v1/latest-version"
-	requestTimeout  = 3 * time.Second
-)
-
 func checkForUpdate() (string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
-	defer cancel()
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet,
-		versionEndpoint, nil)
-	req.Header.Add("user-agent", "hit/"+Version)
+	c, err := client.NewHitClient(client.HitClientOpts{
+		Logger:        log.Logger,
+		HitCLIVersion: Version,
+	})
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("fetch latest version: %w", err)
 	}
-	res, err := http.DefaultClient.Do(req)
+	latestVersion, err := c.LatestHitCLIVersion(context.Background())
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to fetch latest verion: %w", err)
 	}
-	defer func() {
-		err := res.Body.Close()
-		if err != nil {
-			log.Logger.Debug("version-check: failed to close response body", zap.Error(err))
-		}
-	}()
-	if res.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("unexpected status code: %v", res.StatusCode)
-	}
-	js, err := io.ReadAll(res.Body)
-	if err != nil {
-		return "", err
-	}
-	return parseVersionFromResponseOrFile(js)
+	return latestVersion, nil
 }
 
 type data struct {
