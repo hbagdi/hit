@@ -12,7 +12,7 @@ require (
 	github.com/rivo/tview v0.0.0-20220610163003-691f46d6f500
 	github.com/stretchr/testify v1.8.0
 	github.com/tidwall/gjson v1.14.2
-	go.uber.org/zap v1.21.0
+	go.uber.org/zap v1.22.0
 )
 
 require (
