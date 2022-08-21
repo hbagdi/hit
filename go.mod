@@ -3,6 +3,7 @@ module github.com/hbagdi/hit
 go 1.19
 
 require (
+	github.com/atotto/clipboard v0.1.4
 	github.com/blang/semver/v4 v4.0.0
 	github.com/fatih/color v1.13.0
 	github.com/gdamore/tcell/v2 v2.4.1-0.20210905002822-f057f0a857a1
@@ -10,6 +11,7 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.13
 	github.com/nwidger/jsoncolor v0.3.1
 	github.com/rivo/tview v0.0.0-20220610163003-691f46d6f500
+	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
 	github.com/stretchr/testify v1.8.0
 	github.com/tidwall/gjson v1.14.2
 	go.uber.org/zap v1.22.0
