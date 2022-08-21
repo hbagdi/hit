@@ -54,7 +54,6 @@ linters:
     - staticcheck
     - structcheck
     - stylecheck
-    - tagliatelle
     - tenv
     - thelper
     - tparallel
@@ -70,3 +69,11 @@ issues:
     - linters:
         - forbidigo
       path: pkg/cmd/
+linters-settings:
+  tagliatelle:
+    case:
+      use-field-name: true
+      rules:
+        json:     camel
+        yaml:     camel
+

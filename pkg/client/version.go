@@ -12,7 +12,8 @@ import (
 )
 
 const (
-	versionEndpoint = "https://hit-server.yolo42.com/api/v1/latest-version"
+	baseURL         = "https://hit-app.yolo42.com/api/v1"
+	versionEndpoint = "/latest-version"
 	requestTimeout  = 3 * time.Second
 )
 
@@ -24,7 +25,7 @@ func (c HitClient) LatestHitCLIVersion(ctx context.Context) (string, error) {
 	ctx, cancel := context.WithTimeout(ctx, requestTimeout)
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, versionEndpoint, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, baseURL+versionEndpoint, nil)
 	if err != nil {
 		return "", fmt.Errorf("prepare HTTP request: %w", err)
 	}

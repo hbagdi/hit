@@ -2,14 +2,20 @@ package cmd
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
+	"time"
 
+	"github.com/atotto/clipboard"
 	"github.com/gdamore/tcell/v2"
+	client2 "github.com/hbagdi/hit/pkg/client"
 	"github.com/hbagdi/hit/pkg/db"
 	"github.com/hbagdi/hit/pkg/log"
 	"github.com/hbagdi/hit/pkg/model"
 	"github.com/hbagdi/hit/pkg/printer"
+	"github.com/hbagdi/hit/pkg/version"
 	"github.com/rivo/tview"
+	"github.com/skratchdot/open-golang/open"
 )
 
 var (
@@ -67,15 +73,28 @@ func (b *browser) keyHandler(event *tcell.EventKey) *tcell.EventKey {
 	return event
 }
 
+var hitAppClient *client2.HitClient
+
+func init() {
+	var err error
+	hitAppClient, err = client2.NewHitClient(client2.HitClientOpts{
+		Logger:        log.Logger,
+		HitCLIVersion: version.Version,
+	})
+	if err != nil {
+		panic(err)
+	}
+}
+
 func (b *browser) shareModal() {
 	// i := hitsList.GetCurrentItem()
 	const shareModalPageName = "share-modal"
 	const sharedModalPageName = "shared-modal"
-	modal := newModal()
-	modal.SetText("Share request with others," +
-		"this will upload the request to hit.yolo42.com")
-	modal.AddButtons([]string{"share", "back"})
-	modal.SetDoneFunc(func(buttonIndex int, buttonLabel string) {
+	shareModal := newModal()
+	shareModal.SetText("Share request with others," +
+		"this will upload the request to hit-app.yolo42.com")
+	shareModal.AddButtons([]string{"share", "back"})
+	shareModal.SetDoneFunc(func(buttonIndex int, buttonLabel string) {
 		switch buttonIndex {
 		case -1:
 			b.pages.RemovePage(shareModalPageName)
@@ -84,15 +103,89 @@ func (b *browser) shareModal() {
 		case 0:
 			b.pages.RemovePage(shareModalPageName)
 			modal := newModal()
-			modal.SetText("Sharing not yet implemented!")
-			modal.AddButtons([]string{"back"})
-			modal.SetDoneFunc(func(buttonIndex int, buttonLabel string) {
-				b.pages.RemovePage(sharedModalPageName)
-			})
+			modal.SetText("Uploading...")
 			b.pages.AddPage(sharedModalPageName, modal, true, true)
+
+			go func() {
+				currentRequest := b.hitListView.GetCurrentItem()
+				hit := b.hits[currentRequest]
+				encodedRequestBody := base64.StdEncoding.EncodeToString(hit.Request.Body)
+				encodedResponseBody := base64.StdEncoding.EncodeToString(hit.Response.Body)
+				data := client2.ShareData{
+					Request: client2.ShareRequest{
+						Proto:       hit.Request.Proto,
+						Scheme:      hit.Request.Scheme,
+						Method:      hit.Request.Method,
+						Host:        hit.Request.Host,
+						Path:        hit.Request.Path,
+						QueryString: hit.Request.QueryString,
+						Header:      hit.Request.Header,
+						Body:        encodedRequestBody,
+					},
+					Response: client2.ShareResponse{
+						Proto:  hit.Response.Proto,
+						Code:   hit.Response.Code,
+						Status: hit.Response.Status,
+						Header: hit.Response.Header,
+						Body:   encodedResponseBody,
+					},
+				}
+				var (
+					url           string
+					responseModal = newModal()
+					resp, err     = doShare(data)
+				)
+				if err != nil {
+					message := fmt.Sprintf("failed to upload request: %v", err)
+					responseModal.SetText(message)
+				} else {
+					url = shareURL(resp)
+					responseModal.SetText(fmt.Sprintf("Upload successful:\n%v", url))
+					responseModal.AddButtons([]string{"open", "copy"})
+				}
+
+				responseModal.AddButtons([]string{"back"})
+				responseModal.SetDoneFunc(func(buttonIndex int, buttonLabel string) {
+					switch buttonLabel {
+					case "back":
+						b.pages.RemovePage(sharedModalPageName)
+					case "open":
+						err := open.Run(url)
+						if err != nil {
+							panic(err)
+						}
+					case "copy":
+						err := clipboard.WriteAll(url)
+						if err != nil {
+							panic(err)
+						}
+						responseModal.SetText("Copied!")
+					}
+				})
+				b.pages.RemovePage(shareModalPageName)
+				b.pages.AddPage(sharedModalPageName, responseModal, true, true)
+				b.app.Draw()
+			}()
 		}
 	})
-	b.pages.AddPage(shareModalPageName, modal, true, true)
+	b.pages.AddPage(shareModalPageName, shareModal, true, true)
+}
+
+func doShare(data client2.ShareData) (string, error) {
+	const requestTimeout = 5 * time.Second
+	ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
+	defer cancel()
+	response, err := hitAppClient.ShareHit(ctx, client2.ShareAPIRequest{
+		Data: data,
+	})
+	if err != nil {
+		return "", err
+	}
+	return response.ID, nil
+}
+
+func shareURL(id string) string {
+	return fmt.Sprintf("https://hit-app.yolo42.com/browse/hits/%s", id)
 }
 
 func newModal() *tview.Modal {
