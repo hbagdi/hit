@@ -18,7 +18,8 @@ import (
 var c cache.Cache
 
 func init() {
-	store, err := db.NewStore(db.StoreOpts{Logger: log.Logger})
+	store, err := db.NewStore(context.Background(),
+		db.StoreOpts{Logger: log.Logger})
 	if err != nil {
 		panic(fmt.Errorf("init test db: %v", err))
 	}

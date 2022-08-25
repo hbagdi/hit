@@ -6,8 +6,8 @@ import (
 	"fmt"
 )
 
-func migrate(db *sql.DB) error {
-	rows, err := db.Query(`SELECT name FROM sqlite_master WHERE name='schema_migrations';`)
+func migrate(ctx context.Context, db *sql.DB) error {
+	rows, err := db.QueryContext(ctx, `SELECT name FROM sqlite_master WHERE name='schema_migrations';`)
 	if err != nil {
 		return err
 	}
@@ -16,25 +16,26 @@ func migrate(db *sql.DB) error {
 		return err
 	}
 	if !rows.Next() {
-		err := initSchemaMigration(db)
+		err := initSchemaMigration(ctx, db)
 		if err != nil {
 			return err
 		}
 	}
-	err = doMigrate(db, migrations)
+	err = doMigrate(ctx, db, migrations)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func initSchemaMigration(sql *sql.DB) error {
-	_, err := sql.Exec("create table schema_migrations(" +
+func initSchemaMigration(ctx context.Context, sql *sql.DB) error {
+	_, err := sql.ExecContext(ctx, "create table schema_migrations("+
 		"id varchar primary key, count int)")
 	if err != nil {
 		return fmt.Errorf("create schema_migrations table: %v", err)
 	}
-	_, err = sql.Exec(`insert into schema_migrations values('current_state',0);`)
+	_, err = sql.ExecContext(ctx, `insert into schema_migrations values(
+'current_state',0);`)
 	if err != nil {
 		return fmt.Errorf("init schema_migrations: %v", err)
 	}
@@ -60,15 +61,15 @@ var migrations = []string{
 	`alter table hits add column http_request_scheme text;`,
 }
 
-func doMigrate(db *sql.DB, migrations []string) error {
-	currentState, err := currentState(db)
+func doMigrate(ctx context.Context, db *sql.DB, migrations []string) error {
+	currentState, err := currentState(ctx, db)
 	if err != nil {
 		return err
 	}
 	if len(migrations) == currentState {
 		return nil
 	}
-	tx, err := db.BeginTx(context.Background(), nil)
+	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("begin transaction: %v", err)
 	}
@@ -77,12 +78,12 @@ func doMigrate(db *sql.DB, migrations []string) error {
 		_ = tx.Rollback()
 	}()
 	for i := currentState; i < len(migrations); i++ {
-		_, err := tx.Exec(migrations[i])
+		_, err := tx.ExecContext(ctx, migrations[i])
 		if err != nil {
 			return fmt.Errorf("migration(%d): %v", i, err)
 		}
 	}
-	err = updateCurrentState(tx, len(migrations))
+	err = updateCurrentState(ctx, tx, len(migrations))
 	if err != nil {
 		return err
 	}
@@ -94,16 +95,18 @@ func doMigrate(db *sql.DB, migrations []string) error {
 	return nil
 }
 
-func updateCurrentState(tx *sql.Tx, newState int) error {
-	_, err := tx.Exec(`update schema_migrations set count=? where id='current_state';`, newState)
+func updateCurrentState(ctx context.Context, tx *sql.Tx, newState int) error {
+	_, err := tx.ExecContext(ctx, `update schema_migrations set count=? where id
+='current_state';`, newState)
 	if err != nil {
 		return fmt.Errorf("update current state: %v", err)
 	}
 	return nil
 }
 
-func currentState(db *sql.DB) (int, error) {
-	rows, err := db.Query(`select count from schema_migrations where id='current_state';`)
+func currentState(ctx context.Context, db *sql.DB) (int, error) {
+	rows, err := db.QueryContext(ctx, `select count from schema_migrations where id
+='current_state';`)
 	if err != nil {
 		return 0, fmt.Errorf("read current state: %v", err)
 	}

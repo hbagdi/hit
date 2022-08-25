@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"testing"
 
 	"github.com/hbagdi/hit/pkg/log"
@@ -37,7 +38,7 @@ func TestNewStore(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := NewStore(tt.args.opts)
+			_, err := NewStore(context.Background(), tt.args.opts)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewStore() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -47,7 +48,7 @@ func TestNewStore(t *testing.T) {
 }
 
 func TestStoreClose(t *testing.T) {
-	store, err := NewStore(StoreOpts{Logger: log.Logger})
+	store, err := NewStore(context.Background(), StoreOpts{Logger: log.Logger})
 	require.NoError(t, err)
 	require.NoError(t, store.Close())
 }

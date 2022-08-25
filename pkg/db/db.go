@@ -225,7 +225,7 @@ func genDSN(fileName string) string {
 	return dsn
 }
 
-func NewStore(opts StoreOpts) (*Store, error) {
+func NewStore(ctx context.Context, opts StoreOpts) (*Store, error) {
 	dsn := genDSN(dbFilePath)
 	db, err := sql.Open("sqlite3", dsn)
 	if err != nil {
@@ -234,7 +234,7 @@ func NewStore(opts StoreOpts) (*Store, error) {
 	if opts.Logger == nil {
 		return nil, fmt.Errorf("no logger")
 	}
-	err = migrate(db)
+	err = migrate(ctx, db)
 	if err != nil {
 		return nil, fmt.Errorf("ensure migrations up to date: %v", err)
 	}

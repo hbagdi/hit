@@ -76,14 +76,14 @@ func Run(ctx context.Context, args ...string) (err error) {
 	case id == "version":
 		return executeVersion()
 	case id == "browse":
-		return executeBrowse()
+		return executeBrowse(ctx)
 	case id[0] == '@':
 	default:
 		return fmt.Errorf("request must begin with '@' character")
 	}
 	id = id[1:]
 
-	store, err := db.NewStore(db.StoreOpts{Logger: log.Logger})
+	store, err := db.NewStore(ctx, db.StoreOpts{Logger: log.Logger})
 	if err != nil {
 		return err
 	}
