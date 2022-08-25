@@ -25,7 +25,7 @@ func getDB(t *testing.T) *sql.DB {
 
 func TestInitSchemaMigration(t *testing.T) {
 	db := getDB(t)
-	err := initSchemaMigration(db)
+	err := initSchemaMigration(context.Background(), db)
 	require.NoError(t, err)
 
 	res, err := db.Query("select * from schema_migrations;")
@@ -45,53 +45,57 @@ func TestInitSchemaMigration(t *testing.T) {
 
 func TestCurrentState(t *testing.T) {
 	db := getDB(t)
-	err := initSchemaMigration(db)
+	ctx := context.Background()
+	err := initSchemaMigration(ctx, db)
 	require.NoError(t, err)
 
-	state, err := currentState(db)
+	state, err := currentState(ctx, db)
 	require.NoError(t, err)
 	require.Equal(t, 0, state)
 }
 
 func TestUpdateCurrentState(t *testing.T) {
 	db := getDB(t)
-	err := initSchemaMigration(db)
+	ctx := context.Background()
+	err := initSchemaMigration(ctx, db)
 	require.NoError(t, err)
 
 	tx, err := db.BeginTx(context.Background(), nil)
 	require.NoError(t, err)
-	err = updateCurrentState(tx, 2)
+	err = updateCurrentState(ctx, tx, 2)
 	require.NoError(t, err)
 	require.NoError(t, tx.Commit())
 
-	state, err := currentState(db)
+	state, err := currentState(ctx, db)
 	require.NoError(t, err)
 	require.Equal(t, 2, state)
 }
 
 func TestDoMigrate(t *testing.T) {
 	db := getDB(t)
-	err := initSchemaMigration(db)
+	ctx := context.Background()
+	err := initSchemaMigration(ctx, db)
 	require.NoError(t, err)
 
-	require.NoError(t, doMigrate(db, []string{
+	require.NoError(t, doMigrate(ctx, db, []string{
 		`create table foo(id text primary key);`,
 		`create table bar(id text primary key);`,
 	}))
 
-	state, err := currentState(db)
+	state, err := currentState(ctx, db)
 	require.NoError(t, err)
 	require.Equal(t, 2, state)
 }
 
 func TestDoMigrateWithRealMigrations(t *testing.T) {
 	db := getDB(t)
-	err := initSchemaMigration(db)
+	ctx := context.Background()
+	err := initSchemaMigration(ctx, db)
 	require.NoError(t, err)
 
-	require.NoError(t, doMigrate(db, migrations))
+	require.NoError(t, doMigrate(ctx, db, migrations))
 
-	state, err := currentState(db)
+	state, err := currentState(ctx, db)
 	require.NoError(t, err)
 	require.Equal(t, len(migrations), state)
 }

@@ -285,8 +285,8 @@ func (b *browser) refreshListView() {
 	}
 }
 
-func newBrowser(store *db.Store) (*browser, error) {
-	hits, err := store.List(context.Background(), db.PageOpts{})
+func newBrowser(ctx context.Context, store *db.Store) (*browser, error) {
+	hits, err := store.List(ctx, db.PageOpts{})
 	if err != nil {
 		return nil, fmt.Errorf("hitsList requests: %v", err)
 	}
@@ -304,8 +304,8 @@ func newBrowser(store *db.Store) (*browser, error) {
 	return b, nil
 }
 
-func executeBrowse() error {
-	store, err := db.NewStore(db.StoreOpts{Logger: log.Logger})
+func executeBrowse(ctx context.Context) error {
+	store, err := db.NewStore(ctx, db.StoreOpts{Logger: log.Logger})
 	if err != nil {
 		return fmt.Errorf("set up DB: %v", err)
 	}
@@ -315,7 +315,7 @@ func executeBrowse() error {
 			log.Logger.Sugar().Errorf("failed to close store: %v", err)
 		}
 	}()
-	b, err := newBrowser(store)
+	b, err := newBrowser(ctx, store)
 	if err != nil {
 		return fmt.Errorf("set up browser :%v", err)
 	}
