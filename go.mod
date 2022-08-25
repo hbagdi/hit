@@ -8,6 +8,7 @@ require (
 	github.com/fatih/color v1.13.0
 	github.com/gdamore/tcell/v2 v2.4.1-0.20210905002822-f057f0a857a1
 	github.com/ghodss/yaml v1.0.0
+	github.com/kioopi/extedit v0.0.0-20140814205707-70132e7fbe3a
 	github.com/mattn/go-sqlite3 v1.14.15
 	github.com/nwidger/jsoncolor v0.3.1
 	github.com/rivo/tview v0.0.0-20220610163003-691f46d6f500

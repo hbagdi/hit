@@ -23,6 +23,7 @@ type Mode int
 const (
 	ModeColorConsole = iota
 	ModeBrowser
+	ModeNoColor
 )
 
 type Opts struct {
@@ -52,6 +53,13 @@ func (p Printer) Print(hit model.Hit) error {
 
 type colorPrinter interface {
 	SprintfFunc() func(format string, a ...interface{}) string
+}
+
+type noColor struct {
+}
+
+func (n noColor) SprintfFunc() func(format string, a ...interface{}) string {
+	return fmt.Sprintf
 }
 
 type tvColor struct {
@@ -106,6 +114,8 @@ func (p Printer) colorPrinterFor(name colorName) colorPrinter {
 		return consoleColors[name]
 	case ModeBrowser:
 		return browserColors[name]
+	case ModeNoColor:
+		return noColor{}
 	default:
 		panic(fmt.Sprintf("invalid mode: %v", p.mode))
 	}

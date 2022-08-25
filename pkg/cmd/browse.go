@@ -1,9 +1,12 @@
 package cmd
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"fmt"
+	"io"
+	"os"
 	"time"
 
 	"github.com/atotto/clipboard"
@@ -14,6 +17,7 @@ import (
 	"github.com/hbagdi/hit/pkg/model"
 	"github.com/hbagdi/hit/pkg/printer"
 	"github.com/hbagdi/hit/pkg/version"
+	"github.com/kioopi/extedit"
 	"github.com/rivo/tview"
 	"github.com/skratchdot/open-golang/open"
 )
@@ -91,9 +95,9 @@ func (b *browser) shareModal() {
 	const shareModalPageName = "share-modal"
 	const sharedModalPageName = "shared-modal"
 	shareModal := newModal()
-	shareModal.SetText("Share request with others," +
-		"this will upload the request to hit-app.yolo42.com")
-	shareModal.AddButtons([]string{"share", "back"})
+	shareModal.SetText("Share request with others.\n" +
+		"This will upload the request to hit-app.yolo42.com.")
+	shareModal.AddButtons([]string{"share", "edit before share", "back"})
 	shareModal.SetDoneFunc(func(buttonIndex int, buttonLabel string) {
 		switch buttonIndex {
 		case -1:
@@ -103,9 +107,47 @@ func (b *browser) shareModal() {
 		case 0:
 			b.pages.RemovePage(shareModalPageName)
 			modal := newModal()
-			modal.SetText("Uploading...")
 			b.pages.AddPage(sharedModalPageName, modal, true, true)
+			b.app.Suspend(func() {
+				var buf bytes.Buffer
+				i := b.hitListView.GetCurrentItem()
+				hit := b.hits[i]
+				encodedRequestBody := base64.StdEncoding.EncodeToString(hit.Request.Body)
+				encodedResponseBody := base64.StdEncoding.EncodeToString(hit.Response.Body)
+				data := client2.ShareData{
+					Request: client2.ShareRequest{
+						Proto:       hit.Request.Proto,
+						Scheme:      hit.Request.Scheme,
+						Method:      hit.Request.Method,
+						Host:        hit.Request.Host,
+						Path:        hit.Request.Path,
+						QueryString: hit.Request.QueryString,
+						Header:      hit.Request.Header,
+						Body:        encodedRequestBody,
+					},
+					Response: client2.ShareResponse{
+						Proto:  hit.Response.Proto,
+						Code:   hit.Response.Code,
+						Status: hit.Response.Status,
+						Header: hit.Response.Header,
+						Body:   encodedResponseBody,
+					},
+				}
+				diff, err := extedit.Invoke(&buf)
+				if err != nil {
+					panic(err)
+				}
+				b, err := io.ReadAll(diff.Content)
+				if err != nil {
+					panic(err)
+				}
+				err = os.WriteFile("/tmp/foo", b, os.ModePerm)
+				if err != nil {
+					panic(err)
+				}
+			})
 
+			modal.SetText("Uploading...")
 			go func() {
 				currentRequest := b.hitListView.GetCurrentItem()
 				hit := b.hits[currentRequest]
