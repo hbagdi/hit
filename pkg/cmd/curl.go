@@ -1,14 +1,19 @@
 package cmd
 
 import (
+	"bytes"
 	"context"
-	"github.com/hbagdi/hit/pkg/cache"
-	"github.com/hbagdi/hit/pkg/db"
-	"go.uber.org/zap"
+	"io"
 	"net/http"
 	"os"
 	"os/exec"
 	"regexp"
+
+	"github.com/hbagdi/hit/pkg/cache"
+	"github.com/hbagdi/hit/pkg/db"
+	executorPkg "github.com/hbagdi/hit/pkg/executor"
+	"github.com/hbagdi/hit/pkg/model"
+	"go.uber.org/zap"
 
 	"github.com/elazarl/goproxy"
 
@@ -40,28 +45,60 @@ func executeCURL(ctx context.Context) {
 		}
 	}()
 
-	var proxy = goproxy.NewProxyHttpServer()
+	executor, err := executorPkg.NewExecutor(&executorPkg.Opts{
+		Cache: dbCache,
+	})
+	if err != nil {
+		panic(err)
+	}
+	defer executor.Close()
+
+	proxy := goproxy.NewProxyHttpServer()
+
 	proxy.OnRequest(goproxy.ReqHostMatches(regexp.MustCompile("^.*$"))).
 		HandleConnect(goproxy.AlwaysMitm)
+
 	proxy.OnRequest(goproxy.ReqHostMatches(regexp.MustCompile("^.*$"))).
 		DoFunc(func(req *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
-			resp, _ := http.Get("http://httpbin.org/status/404")
+
+			reqBody, err := io.ReadAll(req.Body)
+			if err != nil {
+				ctx.Error = err
+				return req, nil
+			}
+			hitReq := model.Request{
+				Proto:       req.Proto,
+				Scheme:      req.URL.Scheme,
+				Method:      req.Method,
+				Host:        req.Host,
+				Path:        req.URL.Path,
+				QueryString: req.URL.Query().Encode(),
+				Header:      req.Header,
+				Body:        reqBody,
+			}
+			hitResp, err := executor.Execute(ctx.Req.Context(), "", hitReq)
+			if err != nil {
+				ctx.Error = err
+				return req, nil
+			}
+			respBody := bytes.NewReader(hitResp.Response.Body)
+			resp := &http.Response{
+				Status:        hitResp.Response.Status,
+				StatusCode:    hitResp.Response.Code,
+				Proto:         hitResp.Response.Proto,
+				Header:        hitResp.Response.Header,
+				Body:          io.NopCloser(respBody),
+				ContentLength: int64(len(hitResp.Response.Body)),
+			}
 			return req, resp
 		})
+
 	go func() {
 		err := http.ListenAndServe(":8080", proxy)
 		if err != nil {
 			panic(err)
 		}
 	}()
-
-	//executor, err := executorPkg.NewExecutor(&executorPkg.Opts{
-	//	Cache: dbCache,
-	//})
-	//if err != nil {
-	//	panic(err)
-	//}
-	//defer executor.Close()
 
 	log.Logger.Debug("executing cmd")
 	args := os.Args
