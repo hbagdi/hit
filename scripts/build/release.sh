@@ -1,6 +1,6 @@
 #!/bin/bash -x
 
-GO_VERSION=1.19.0
+GO_VERSION=1.19.1
 if [[ -z "$VERSION" ]];
 then
   echo "VERSION env var is not set"
