@@ -1,6 +1,6 @@
 @_global
 ~
-baseURL: http://localhost:7090
+baseURL: https://nodes.yolo42.com
 version: 1
 ~
 
