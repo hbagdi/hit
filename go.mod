@@ -13,7 +13,7 @@ require (
 	github.com/rivo/tview v0.0.0-20220610163003-691f46d6f500
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
 	github.com/stretchr/testify v1.8.1
-	github.com/tidwall/gjson v1.14.3
+	github.com/tidwall/gjson v1.14.4
 	go.uber.org/zap v1.23.0
 )
 
